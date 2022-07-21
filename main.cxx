@@ -13,17 +13,22 @@ using namespace std;
 template <class G>
 void runLouvain(const G& x, int repeat) {
   using K = typename G::key_type;
+  using V = typename G::edge_value_type;
+  V resolution = V(1);
+  V phaseTolerance = V(0);
   auto M = edgeWeight(x)/2;
   auto Q = modularity(x, M, 1.0f);
   printf("[%01.6f modularity] noop\n", Q);
 
   // Run louvain algorithm.
-  do {
-    LouvainResult<K> a = louvainSeq(x, {repeat});
-    auto fc = [&](auto u) { return a.membership[u]; };
-    auto Q  = modularity(x, fc, M, 1.0f);
-    printf("[%09.3f ms; %01.6f modularity] louvainSeq\n", a.time, Q);
-  } while(0);
+  for (V toleranceDeclineFactor=V(10); toleranceDeclineFactor<=V(1e+4); toleranceDeclineFactor*=V(10)) {
+    for (V tolerance=V(1e-3); tolerance>=V(1e-15); tolerance*=V(0.1)) {
+      LouvainResult<K> a = louvainSeq(x, {repeat, resolution, tolerance, phaseTolerance, toleranceDeclineFactor});
+      auto fc = [&](auto u) { return a.membership[u]; };
+      auto Q  = modularity(x, fc, M, 1.0f);
+      printf("[%09.3f ms; %01.6f modularity] louvainSeq {tolerance: %1.1e, tol_dec_factor: %1.1e}\n", a.time, Q, tolerance, toleranceDeclineFactor);
+    }
+  }
 }
 
 

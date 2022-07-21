@@ -233,24 +233,19 @@ auto louvainSeq(const G& x, LouvainOptions<V> o={}) {
   louvainVertexWeights(vtot, y);
   louvainInitialize(vcom, ctot, y, vtot);
   vector<K> a(S); copyValues(vcom, a);
-  // printf("louvainSeq: "); println(y);
-  // printf("louvainSeq: M0 = %f\n", M);
-  // printf("louvainSeq: Q0 = %f\n", Q0);
   for (; p<P;) {
     louvainMove(vcom, ctot, vcs, vcout, y, vtot, M, R, E, L);
     y = louvainAggregate(y, vcom); ++p;
     louvainLookupCommunities(a, vcom);
-    // printf("louvainSeq: y: "); println(y);
     V Q = modularity(y, M, R);
-    // printf("louvainSeq: p=%d, Q=%f\n", p, Q);
     V M = edgeWeight(y)/2;
-    // printf("louvainSeq: p=%d, M=%f\n", p, M);
     if (Q-Q0<=D) break;
     fillValueU(vcom, K());
     fillValueU(vtot, V());
     fillValueU(ctot, V());
     louvainVertexWeights(vtot, y);
     louvainInitialize(vcom, ctot, y, vtot);
+    E /= o.tolerenceDeclineFactor;
     Q0 = Q;
   }
   return LouvainResult<K>(a, p, 0.0f);
