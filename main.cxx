@@ -19,10 +19,16 @@ void runLouvain(const G& x, int repeat) {
 
   // Run louvain algorithm.
   do {
-    LouvainResult<K> a = louvainSeq(x, {repeat});
+    LouvainResult<K> a = louvainSeq<true>(x, {repeat});
     auto fc = [&](auto u) { return a.membership[u]; };
     auto Q  = modularity(x, fc, M, 1.0f);
-    printf("[%09.3f ms; %01.6f modularity] louvainSeq\n", a.time, Q);
+    printf("[%09.3f ms; %01.6f modularity] louvainSeqOrdered\n", a.time, Q);
+  } while(0);
+  do {
+    LouvainResult<K> a = louvainSeq<false>(x, {repeat});
+    auto fc = [&](auto u) { return a.membership[u]; };
+    auto Q  = modularity(x, fc, M, 1.0f);
+    printf("[%09.3f ms; %01.6f modularity] louvainSeqUnordered\n", a.time, Q);
   } while(0);
 }
 
