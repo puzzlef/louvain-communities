@@ -220,33 +220,40 @@ template <class G, class V=float>
 auto louvainSeq(const G& x, LouvainOptions<V> o={}) {
   using K = typename G::key_type;
   V   R = o.resolution;
-  V   E = o.tolerance;
   V   D = o.phaseTolerance;
   int L = o.maxIterations;
   int P = o.maxPhaseIterations, p = 0;
   V   M = edgeWeight(x)/2;
-  V  Q0 = modularity(x, M, R);
   size_t S = x.span();
-  vector<K> vcom(S), vcs;
+  vector<K> vcom(S), vcs, a(S);
   vector<V> vtot(S), ctot(S), vcout(S);
-  G y = duplicate(x);
-  louvainVertexWeights(vtot, y);
-  louvainInitialize(vcom, ctot, y, vtot);
-  vector<K> a(S); copyValues(vcom, a);
-  for (; p<P;) {
-    louvainMove(vcom, ctot, vcs, vcout, y, vtot, M, R, E, L);
-    y = louvainAggregate(y, vcom); ++p;
-    louvainLookupCommunities(a, vcom);
-    V Q = modularity(y, M, R);
-    V M = edgeWeight(y)/2;
-    if (Q-Q0<=D) break;
+  float t = measureDurationMarked([&](auto mark) {
+    V E  = o.tolerance;
+    V Q0 = modularity(x, M, R);
+    G y  = duplicate(x);
     fillValueU(vcom, K());
     fillValueU(vtot, V());
     fillValueU(ctot, V());
-    louvainVertexWeights(vtot, y);
-    louvainInitialize(vcom, ctot, y, vtot);
-    E /= o.tolerenceDeclineFactor;
-    Q0 = Q;
-  }
-  return LouvainResult<K>(a, p, 0.0f);
+    mark([&]() {
+      louvainVertexWeights(vtot, y);
+      louvainInitialize(vcom, ctot, y, vtot);
+      copyValues(vcom, a);
+      for (; p<P;) {
+        louvainMove(vcom, ctot, vcs, vcout, y, vtot, M, R, E, L);
+        y = louvainAggregate(y, vcom); ++p;
+        louvainLookupCommunities(a, vcom);
+        V Q = modularity(y, M, R);
+        V M = edgeWeight(y)/2;
+        if (Q-Q0<=D) break;
+        fillValueU(vcom, K());
+        fillValueU(vtot, V());
+        fillValueU(ctot, V());
+        louvainVertexWeights(vtot, y);
+        louvainInitialize(vcom, ctot, y, vtot);
+        E /= o.tolerenceDeclineFactor;
+        Q0 = Q;
+      }
+    });
+  }, 1);
+  return LouvainResult<K>(a, p, t);
 }

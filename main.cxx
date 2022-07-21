@@ -26,7 +26,7 @@ void runLouvain(const G& x, int repeat) {
       LouvainResult<K> a = louvainSeq(x, {repeat, resolution, tolerance, phaseTolerance, toleranceDeclineFactor});
       auto fc = [&](auto u) { return a.membership[u]; };
       auto Q  = modularity(x, fc, M, 1.0f);
-      printf("[%09.3f ms; %01.6f modularity] louvainSeq {tolerance: %1.1e, tol_dec_factor: %1.1e}\n", a.time, Q, tolerance, toleranceDeclineFactor);
+      printf("[%09.3f ms; %03d passes; %01.9f modularity] louvainSeq {tolerance: %1.1e, tol_dec_factor: %1.1e}\n", a.time, a.passes, Q, tolerance, toleranceDeclineFactor);
     }
   }
 }
