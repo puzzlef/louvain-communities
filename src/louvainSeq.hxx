@@ -231,28 +231,35 @@ auto louvainSeq(const G& x, LouvainOptions<V> o={}) {
   int L = o.maxIterations;
   int P = o.maxPhaseIterations, p = 0;
   V   M = edgeWeight(x)/2;
-  V  Q0 = modularity(x, M, R);
   size_t S = x.span();
-  vector<K> vdom(S), vcom(S), vcs;
+  vector<K> vdom(S), vcom(S), vcs, a(S);
   vector<V> vtot(S), dtot(S), ctot(S), vcout(S);
-  G y = duplicate(x);
-  louvainVertexWeights(vtot, y);
-  louvainInitialize(vcom, ctot, y, vtot);
-  vector<K> a(S); copyValues(vcom, a);
-  for (; p<P;) {
-    if (O) louvainMove<O>(vcom, vcom, ctot, ctot, vcs, vcout, y, vtot, M, R, E, L);
-    else   louvainMove<O>(vdom, vcom, dtot, ctot, vcs, vcout, y, vtot, M, R, E, L);
-    y = louvainAggregate(y, vcom); ++p;
-    louvainLookupCommunities(a, vcom);
-    V Q = modularity(y, M, R);
-    V M = edgeWeight(y)/2;
-    if (Q-Q0<=D) break;
+  float t = measureDurationMarked([&](auto mark) {
+    V Q0 = modularity(x, M, R);
+    G y  = duplicate(x);
     fillValueU(vcom, K());
     fillValueU(vtot, V());
     fillValueU(ctot, V());
-    louvainVertexWeights(vtot, y);
-    louvainInitialize(vcom, ctot, y, vtot);
-    Q0 = Q;
-  }
-  return LouvainResult<K>(a, p, 0.0f);
+    mark([&]() {
+      louvainVertexWeights(vtot, y);
+      louvainInitialize(vcom, ctot, y, vtot);
+      copyValues(vcom, a);
+      for (p=0; p<P;) {
+        if (O) louvainMove<O>(vcom, vcom, ctot, ctot, vcs, vcout, y, vtot, M, R, E, L);
+        else   louvainMove<O>(vdom, vcom, dtot, ctot, vcs, vcout, y, vtot, M, R, E, L);
+        y = louvainAggregate(y, vcom); ++p;
+        louvainLookupCommunities(a, vcom);
+        V Q = modularity(y, M, R);
+        V M = edgeWeight(y)/2;
+        if (Q-Q0<=D) break;
+        fillValueU(vcom, K());
+        fillValueU(vtot, V());
+        fillValueU(ctot, V());
+        louvainVertexWeights(vtot, y);
+        louvainInitialize(vcom, ctot, y, vtot);
+        Q0 = Q;
+      }
+    });
+  }, o.repeat);
+  return LouvainResult<K>(a, p, t);
 }

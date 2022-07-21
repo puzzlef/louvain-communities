@@ -26,12 +26,12 @@ struct LouvainOptions {
 template <class K>
 struct LouvainResult {
   vector<K> membership;
-  int   iterations;
+  int   passes;
   float time;
 
-  LouvainResult(vector<K>&& membership, int iterations=0, float time=0) :
-  membership(membership), iterations(iterations), time(time) {}
+  LouvainResult(vector<K>&& membership, int passes=0, float time=0) :
+  membership(membership), passes(passes), time(time) {}
 
-  LouvainResult(vector<K>& membership, int iterations=0, float time=0) :
-  membership(move(membership)), iterations(iterations), time(time) {}
+  LouvainResult(vector<K>& membership, int passes=0, float time=0) :
+  membership(move(membership)), passes(passes), time(time) {}
 };
