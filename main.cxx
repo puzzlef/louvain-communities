@@ -22,7 +22,7 @@ void runLouvain(const G& x, int repeat) {
 
   // Run louvain algorithm.
   for (V toleranceDeclineFactor=V(10); toleranceDeclineFactor<=V(1e+4); toleranceDeclineFactor*=V(10)) {
-    for (V tolerance=V(1e-3); tolerance>=V(1e-15); tolerance*=V(0.1)) {
+    for (V tolerance=V(1e-0); tolerance>=V(1e-12); tolerance*=V(0.1)) {
       LouvainResult<K> a = louvainSeq(x, {repeat, resolution, tolerance, phaseTolerance, toleranceDeclineFactor});
       auto fc = [&](auto u) { return a.membership[u]; };
       auto Q  = modularity(x, fc, M, 1.0f);
