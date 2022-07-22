@@ -1,9 +1,11 @@
 const fs = require('fs');
 const os = require('os');
+const path = require('path');
 
 const RGRAPH = /^Loading graph .*\/(.*?)\.mtx \.\.\./m;
-const RORDER = /^order: (\d+) size: (\d+) \{\}/m;
-const RRESLT = /^\[(.+?) ms; (\d+) iters\.\] \[(.+?) err\.\] (\w+)/m;
+const RORDER = /^order: (\d+) size: (\d+) (?:\[\w+\] )?\{\} \(selfLoopAllVertices\)/m;
+const RORGNL = /^\[(\S+?) modularity\] noop/;
+const RRESLT = /^\[(\S+?) ms; (\d+) passes; (\S+?) modularity\] louvainSeq \{tolerance: (\S+?), tol_dec_factor: (\S+?)\}/m;
 
 
 
@@ -52,17 +54,25 @@ function readLogLine(ln, data, state) {
     state.order = parseFloat(order);
     state.size  = parseFloat(size);
   }
+  else if (RORGNL.test(ln)) {
+    var [, modularity] = RORGNL.exec(ln);
+    data.get(state.graph).push(Object.assign({}, state, {
+      time:                     0,
+      passes:                   0,
+      modularity:               parseFloat(modularity),
+      tolerance:                0,
+      tolerance_decline_factor: 0,
+    }));
+  }
   else if (RRESLT.test(ln)) {
-    var [, time, iterations, error, technique] = RRESLT.exec(ln);
-    data.get(state.graph).push({
-      graph: state.graph,
-      order: state.order,
-      size:  state.size,
-      time:       parseFloat(time),
-      iterations: parseFloat(iterations),
-      error:      parseFloat(error),
-      technique:  technique,
-    });
+    var [, time, passes, modularity, tolerance, tolerance_decline_factor] = RRESLT.exec(ln);
+    data.get(state.graph).push(Object.assign({}, state, {
+      time:                     parseFloat(time),
+      passes:                   parseFloat(passes),
+      modularity:               parseFloat(modularity),
+      tolerance:                parseFloat(tolerance),
+      tolerance_decline_factor: parseFloat(tolerance_decline_factor),
+    }));
   }
   return state;
 }
@@ -99,10 +109,15 @@ function processCsv(data) {
 
 function main(cmd, log, out) {
   var data = readLog(log);
+  if (path.extname(out)==='') cmd += '-dir';
   switch (cmd) {
     case 'csv':
       var rows = processCsv(data);
       writeCsv(out, rows);
+      break;
+    case 'csv-dir':
+      for (var [graph, rows] of data)
+        writeCsv(path.join(out, graph+'.csv'), rows);
       break;
     default:
       console.error(`error: "${cmd}"?`);
