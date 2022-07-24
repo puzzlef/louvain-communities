@@ -22,13 +22,13 @@ void runLouvain(const G& x, int repeat) {
     LouvainResult<K> a = louvainSeq<true>(x, {repeat});
     auto fc = [&](auto u) { return a.membership[u]; };
     auto Q  = modularity(x, fc, M, 1.0f);
-    printf("[%09.3f ms; %03d passes; %01.6f modularity] louvainSeqOrdered\n", a.time, a.passes, Q);
+    printf("[%09.3f ms; %04d iters.; %03d passes; %01.6f modularity] louvainSeqOrdered\n", a.time, a.iterations, a.passes, Q);
   } while(0);
   do {
     LouvainResult<K> a = louvainSeq<false>(x, {repeat});
     auto fc = [&](auto u) { return a.membership[u]; };
     auto Q  = modularity(x, fc, M, 1.0f);
-    printf("[%09.3f ms; %03d passes; %01.6f modularity] louvainSeqUnordered\n", a.time, a.passes, Q);
+    printf("[%09.3f ms; %04d iters.; %03d passes; %01.6f modularity] louvainSeqUnordered\n", a.time, a.iterations, a.passes, Q);
   } while(0);
 }
 
