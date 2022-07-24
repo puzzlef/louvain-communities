@@ -5,7 +5,7 @@ const path = require('path');
 const RGRAPH = /^Loading graph .*\/(.*?)\.mtx \.\.\./m;
 const RORDER = /^order: (\d+) size: (\d+) (?:\[\w+\] )?\{\} \(selfLoopAllVertices\)/m;
 const RORGNL = /^\[(\S+?) modularity\] noop/;
-const RRESLT = /^\[(\S+?) ms; (\d+) passes; (\S+?) modularity\] louvainSeq \{tolerance: (\S+?), tol_dec_factor: (\S+?)\}/m;
+const RRESLT = /^\[(\S+?) ms; (\d+) iters\.; (\d+) passes; (\S+?) modularity\] louvainSeq \{tolerance: (\S+?), tol_dec_factor: (\S+?)\}/m;
 
 
 
@@ -58,6 +58,7 @@ function readLogLine(ln, data, state) {
     var [, modularity] = RORGNL.exec(ln);
     data.get(state.graph).push(Object.assign({}, state, {
       time:                     0,
+      iterations:               0,
       passes:                   0,
       modularity:               parseFloat(modularity),
       tolerance:                0,
@@ -65,9 +66,10 @@ function readLogLine(ln, data, state) {
     }));
   }
   else if (RRESLT.test(ln)) {
-    var [, time, passes, modularity, tolerance, tolerance_decline_factor] = RRESLT.exec(ln);
+    var [, time, iterations, passes, modularity, tolerance, tolerance_decline_factor] = RRESLT.exec(ln);
     data.get(state.graph).push(Object.assign({}, state, {
       time:                     parseFloat(time),
+      iterations:               parseFloat(iterations),
       passes:                   parseFloat(passes),
       modularity:               parseFloat(modularity),
       tolerance:                parseFloat(tolerance),
@@ -92,7 +94,6 @@ function readLog(pth) {
 
 // PROCESS-*
 // ---------
-
 
 function processCsv(data) {
   var a = [];

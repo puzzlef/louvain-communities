@@ -221,7 +221,7 @@ auto louvainSeq(const G& x, LouvainOptions<V> o={}) {
   using K = typename G::key_type;
   V   R = o.resolution;
   V   D = o.phaseTolerance;
-  int L = o.maxIterations;
+  int L = o.maxIterations,      l = 0;
   int P = o.maxPhaseIterations, p = 0;
   V   M = edgeWeight(x)/2;
   size_t S = x.span();
@@ -238,9 +238,9 @@ auto louvainSeq(const G& x, LouvainOptions<V> o={}) {
       louvainVertexWeights(vtot, y);
       louvainInitialize(vcom, ctot, y, vtot);
       copyValues(vcom, a);
-      for (; p<P;) {
-        louvainMove(vcom, ctot, vcs, vcout, y, vtot, M, R, E, L);
-        y = louvainAggregate(y, vcom); ++p;
+      for (l=0, p=0; p<P;) {
+        l += louvainMove(vcom, ctot, vcs, vcout, y, vtot, M, R, E, L);
+        y  = louvainAggregate(y, vcom); ++p;
         louvainLookupCommunities(a, vcom);
         V Q = modularity(y, M, R);
         V M = edgeWeight(y)/2;
@@ -254,6 +254,6 @@ auto louvainSeq(const G& x, LouvainOptions<V> o={}) {
         Q0 = Q;
       }
     });
-  }, 1);
-  return LouvainResult<K>(a, p, t);
+  }, o.repeat);
+  return LouvainResult<K>(a, l, p, t);
 }
