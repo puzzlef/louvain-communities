@@ -132,6 +132,7 @@ $ ...
 <br>
 
 [![](https://i.imgur.com/Pylv6Gc.jpg)](http://www.youtube.com/watch?v=m8fPyvA0QRE)<br>
+[![DOI](https://zenodo.org/badge/516260025.svg)](https://zenodo.org/badge/latestdoi/516260025)
 
 
 [Prof. Dip Sankar Banerjee]: https://sites.google.com/site/dipsankarban/
