@@ -49,7 +49,7 @@ void runLouvain(const G& x, int repeat) {
     LouvainResult<K> a = louvainSeq<false>(x, {repeat});
     auto fc = [&](auto u) { return a.membership[u]; };
     auto Q  = modularity(x, fc, M, 1.0f);
-    printf("[%09.3f ms; %03d passes; %01.6f modularity] louvainSeq\n", a.time, a.passes, Q);
+    printf("[%09.3f ms; %04d iterations; %03d passes; %01.6f modularity] louvainSeq\n", a.time, a.iterations, a.passes, Q);
   } while(0);
 
   // Using limited-capacity accumulator hashtable (true).
@@ -57,7 +57,7 @@ void runLouvain(const G& x, int repeat) {
     LouvainResult<K> a = louvainSeq<true>(x, {repeat, accumulatorCapacity});
     auto fc = [&](auto u) { return a.membership[u]; };
     auto Q  = modularity(x, fc, M, 1.0f);
-    printf("[%09.3f ms; %03d passes; %01.6f modularity] louvainSeq {acc_capacity=%zu}\n", a.time, a.passes, Q, accumulatorCapacity);
+    printf("[%09.3f ms; %04d iterations; %03d passes; %01.6f modularity] louvainSeq {acc_capacity=%zu}\n", a.time, a.iterations, a.passes, Q, accumulatorCapacity);
   } while(0);
 }
 
