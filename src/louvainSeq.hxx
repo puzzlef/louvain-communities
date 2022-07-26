@@ -220,9 +220,9 @@ template <class G, class V=float>
 auto louvainSeq(const G& x, LouvainOptions<V> o={}) {
   using K = typename G::key_type;
   V   R = o.resolution;
-  V   D = o.phaseTolerance;
+  V   D = o.passTolerance;
   int L = o.maxIterations,      l = 0;
-  int P = o.maxPhaseIterations, p = 0;
+  int P = o.maxPasses, p = 0;
   V   M = edgeWeight(x)/2;
   size_t S = x.span();
   vector<K> vcom(S), vcs, a(S);

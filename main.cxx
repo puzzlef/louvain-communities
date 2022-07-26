@@ -15,7 +15,7 @@ void runLouvain(const G& x, int repeat) {
   using K = typename G::key_type;
   using V = typename G::edge_value_type;
   V resolution = V(1);
-  V phaseTolerance = V(0);
+  V passTolerance = V(0);
   auto M = edgeWeight(x)/2;
   auto Q = modularity(x, M, 1.0f);
   printf("[%01.6f modularity] noop\n", Q);
@@ -23,7 +23,7 @@ void runLouvain(const G& x, int repeat) {
   // Run louvain algorithm.
   for (V toleranceDeclineFactor=V(10); toleranceDeclineFactor<=V(1e+4); toleranceDeclineFactor*=V(10)) {
     for (V tolerance=V(1e-0); tolerance>=V(1e-12); tolerance*=V(0.1)) {
-      LouvainResult<K> a = louvainSeq(x, {repeat, resolution, tolerance, phaseTolerance, toleranceDeclineFactor});
+      LouvainResult<K> a = louvainSeq(x, {repeat, resolution, tolerance, passTolerance, toleranceDeclineFactor});
       auto fc = [&](auto u) { return a.membership[u]; };
       auto Q  = modularity(x, fc, M, 1.0f);
       printf("[%09.3f ms; %04d iters.; %03d passes; %01.9f modularity] louvainSeq {tolerance: %1.1e, tol_dec_factor: %1.1e}\n", a.time, a.iterations, a.passes, Q, tolerance, toleranceDeclineFactor);
