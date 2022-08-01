@@ -2,15 +2,17 @@
 #include <utility>
 #include <vector>
 #include <iostream>
+#include <algorithm>
 #include "_main.hxx"
 #include "modularity.hxx"
 #include "accumulate.hxx"
 #include "louvain.hxx"
 
 using std::vector;
+using std::cout;
 using std::make_pair;
 using std::move;
-using std::cout;
+using std::min;
 
 
 
@@ -142,6 +144,18 @@ void louvainChangeCommunity(vector<K>& vcom, vector<V>& ctot, const G& x, K u, K
 }
 
 
+template <class G, class K>
+void louvainAvoidCommunitySwaps(vector<K>& vcom, const G& x, const vector<K>& vdom) {
+  x.forEachVertexKey([&](auto u) {
+    K d = vdom[u];
+    K c = vcom[u];
+    if (c==d || vdom[c]!=c || vcom[c]!=d) return;
+    vcom[u] = min(c, vcom[c]);
+    vcom[c] = min(c, vcom[c]);
+  });
+}
+
+
 /**
  * Louvain algorithm's local moving phase.
  * @param vdom community each vertex belonged to (zeros)
@@ -169,10 +183,10 @@ int louvainMove(vector<K>& vdom, vector<K>& vcom, vector<V>& dtot, vector<V>& ct
       louvainClearScan(vcs, vcout);
       louvainScanCommunities(vcs, vcout, x, u, vdom);
       auto [c, e] = louvainChooseCommunity(x, u, vdom, vtot, dtot, vcs, vcout, M, R);
-      if (O) { if (c)              louvainChangeCommunity(vcom, ctot, x, u, c, vdom, vtot); }
-      else   { if (c && c<vdom[u]) louvainChangeCommunity(vcom, ctot, x, u, c, vdom, vtot); }
+      if (c) louvainChangeCommunity(vcom, ctot, x, u, c, vdom, vtot);
       el += e;   // l1-norm
     }); ++l;
+    if (!O) louvainAvoidCommunitySwaps(vcom, x, vdom);
     if (el<=E) break;
   }
   return l;
