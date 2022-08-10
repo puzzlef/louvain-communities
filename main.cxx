@@ -33,8 +33,20 @@ using namespace std;
 // of (ignored) community id collisions that might have occured behind the
 // scenes.
 
-// Prime numbers just below 2, 3, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096.
-const vector<int> PRIMES = {2, 3, 7, 13, 31, 61, 127, 251, 509, 1021, 2039, 4093};
+// Prime numbers just below 512, 1024, 2048, 4096.
+const vector<int> PRIMES = {509, 1021, 2039, 4093};
+
+template <class G, class V, class FH>
+void runLouvainWith(const G& x, V M, int repeat, const char *name, FH fh) {
+  using K = typename G::key_type;
+  // Using limited-capacity accumulator hashtable (true).
+  for (size_t accumulatorCapacity : PRIMES) {
+    LouvainResult<K> a = louvainSeq<true>(fh, x, {repeat, accumulatorCapacity});
+    auto fc = [&](auto u) { return a.membership[u]; };
+    auto Q  = modularity(x, fc, M, 1.0f);
+    printf("[%09.3f ms; %04d iterations; %03d passes; %01.6f modularity] %s {acc_capacity=%zu}\n", a.time, a.iterations, a.passes, Q, name, accumulatorCapacity);
+  }
+}
 
 
 template <class G>
@@ -46,19 +58,41 @@ void runLouvain(const G& x, int repeat) {
 
   // Using full-capacity accumulator hashtable (false).
   do {
-    LouvainResult<K> a = louvainSeq<false>(x, {repeat});
+    auto fh = [](auto k, auto C) { return k; };
+    LouvainResult<K> a = louvainSeq<false>(fh, x, {repeat});
     auto fc = [&](auto u) { return a.membership[u]; };
     auto Q  = modularity(x, fc, M, 1.0f);
     printf("[%09.3f ms; %04d iterations; %03d passes; %01.6f modularity] louvainSeq\n", a.time, a.iterations, a.passes, Q);
   } while(0);
 
-  // Using limited-capacity accumulator hashtable (true).
-  for (size_t accumulatorCapacity : PRIMES) {
-    LouvainResult<K> a = louvainSeq<true>(x, {repeat, accumulatorCapacity});
-    auto fc = [&](auto u) { return a.membership[u]; };
-    auto Q  = modularity(x, fc, M, 1.0f);
-    printf("[%09.3f ms; %04d iterations; %03d passes; %01.6f modularity] louvainSeq {acc_capacity=%zu}\n", a.time, a.iterations, a.passes, Q, accumulatorCapacity);
-  } while(0);
+  runLouvainWith(x, M, repeat, "louvainSeqDivision", [](auto k, auto C) {
+    return k % C;
+    // - https://en.wikipedia.org/wiki/Hash_table
+  });
+  runLouvainWith(x, M, repeat, "louvainSeqMultiplication", [](auto k, auto C) {
+    return size_t(C*k*1.618033988749894) % C;
+    // - https://en.wikipedia.org/wiki/Hash_table
+  });
+  auto fc = [](auto k, auto C) { return ((k & 0xFFFF)*33 + (k>>>0xFFFF)) % C; };
+  runLouvainWith(x, M, repeat, "louvainSeqDjb2", [](auto k, auto C) {
+    auto l = k & 0xFFFF;
+    auto h = k >>> 16;
+    return (((l<<5) + l) + h) % C;
+    // - http://www.cse.yorku.ca/~oz/hash.html
+  });
+  runLouvainWith(x, M, repeat, "louvainSeqSdbm", [](auto k, auto C) {
+    auto l = k & 0xFFFF;
+    auto h = k >>> 16;
+    return (h + (l<<6) + (l<<16) - l) % C;
+    // - http://www.cse.yorku.ca/~oz/hash.html
+  });
+  runLouvainWith(x, M, repeat, "louvainSeqMagic", [](auto k, auto C) {
+    k = ((k >> 16) ^ k) * 0x45d9f3b;
+    k = ((k >> 16) ^ k) * 0x45d9f3b;
+    k = (k >> 16) ^ k;
+    return k % C;
+    // - https://stackoverflow.com/a/12996028/1413259
+  });
 }
 
 

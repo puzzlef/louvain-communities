@@ -1,7 +1,7 @@
-# https://www.kaggle.com/wolfram77/puzzlef-louvain-adjust-accumulator-capacity
+# https://www.kaggle.com/wolfram77/puzzlef-louvain-adjust-accumulator-hash-function
 import os
 from IPython.display import FileLink
-src="louvain-adjust-accumulator-capacity"
+src="louvain-adjust-accumulator-hash-function"
 inp="/kaggle/input/graphs"
 out="{}.txt".format(src)
 !printf "" > "$out"
