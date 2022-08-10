@@ -70,23 +70,23 @@ void runLouvain(const G& x, int repeat) {
     // - https://en.wikipedia.org/wiki/Hash_table
   });
   runLouvainWith(x, M, repeat, "louvainSeqMultiplication", [](auto k, auto C) {
-    return size_t(C*k*1.618033988749894) % C;
+    return k<C? k : size_t(C*k*1.618033988749894) % C;
     // - https://en.wikipedia.org/wiki/Hash_table
   });
-  auto fc = [](auto k, auto C) { return ((k & 0xFFFF)*33 + (k>>>0xFFFF)) % C; };
   runLouvainWith(x, M, repeat, "louvainSeqDjb2", [](auto k, auto C) {
     auto l = k & 0xFFFF;
-    auto h = k >>> 16;
-    return (((l<<5) + l) + h) % C;
+    auto h = k >> 16;
+    return k<C? k : (((l<<5) + l) + h) % C;
     // - http://www.cse.yorku.ca/~oz/hash.html
   });
   runLouvainWith(x, M, repeat, "louvainSeqSdbm", [](auto k, auto C) {
     auto l = k & 0xFFFF;
-    auto h = k >>> 16;
-    return (h + (l<<6) + (l<<16) - l) % C;
+    auto h = k >> 16;
+    return k<C? k : (h + (l<<6) + (l<<16) - l) % C;
     // - http://www.cse.yorku.ca/~oz/hash.html
   });
   runLouvainWith(x, M, repeat, "louvainSeqMagic", [](auto k, auto C) {
+    if (k<C) return size_t(k);
     k = ((k >> 16) ^ k) * 0x45d9f3b;
     k = ((k >> 16) ^ k) * 0x45d9f3b;
     k = (k >> 16) ^ k;
