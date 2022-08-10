@@ -2,6 +2,7 @@
 #include <utility>
 #include <vector>
 #include <iostream>
+#include <algorithm>
 #include "_main.hxx"
 #include "modularity.hxx"
 #include "accumulate.hxx"
@@ -10,6 +11,7 @@
 using std::vector;
 using std::make_pair;
 using std::move;
+using std::min;
 using std::cout;
 
 
@@ -268,7 +270,7 @@ auto louvainSeq(const G& x, LouvainOptions<V> o={}) {
     V Q0    = modularity(x, M, R);
     G y     = duplicate(x);
     auto ks = vertexKeys(y);  // we want to process low degree vertices first
-    sortValues(ks, [&](K u, K v) { return x.degree(u)!=x.degree(v)? x.degree(u)-x.degree(v) : u-v; });
+    sortValues(ks, [&](K u, K v) { return x.degree(u)<x.degree(v); });
     fillValueU(vcom, K());
     fillValueU(vtot, V());
     fillValueU(ctot, V());
@@ -277,10 +279,10 @@ auto louvainSeq(const G& x, LouvainOptions<V> o={}) {
       louvainInitialize(vcom, ctot, y, vtot);
       copyValues(vcom, a);
       for (l=0, p=0; p<P;) {
-        if (o.subsetPercent>0 && p==0) {
-          for (K i=0, I=y.order(), DI=K(o.subsetPercent*I); i<I; i+=DI)
-            l += louvainMove<H>(vcom, ctot, vcs, vcout, y, ks, vtot, M, R, E, o.maxSubIterations, i, i+DI);
-          l = int(l*o.subsetPercent);
+        if (o.subsetParts>0 && p==0) {
+          for (K i=0, I=K(ks.size()), DI=ceilDiv(K(I), K(o.subsetParts)); i<I; i+=DI)
+            l += louvainMove<H>(vcom, ctot, vcs, vcout, y, ks, vtot, M, R, E, o.maxSubIterations, i, min(i+DI, I));
+          l = int(l/o.subsetParts);
         }
         l += louvainMove<H>(vcom, ctot, vcs, vcout, y, vtot, M, R, E, L);
         y =  louvainAggregate(y, vcom); ++p;

@@ -12,7 +12,7 @@ using std::move;
 template <class T>
 struct LouvainOptions {
   int    repeat;
-  T      subsetPercent;
+  int    subsetParts;
   int    maxSubIterations;
   size_t accumulatorCapacity;
   T   resolution;
@@ -21,8 +21,8 @@ struct LouvainOptions {
   int maxIterations;
   int maxPasses;
 
-  LouvainOptions(int repeat=1, T subsetPercent=1, int maxSubIterations=1, size_t accumulatorCapacity=1, T resolution=1, T tolerance=0, T passTolerance=0, int maxIterations=500, int maxPasses=500) :
-  repeat(repeat), subsetPercent(subsetPercent), maxSubIterations(maxSubIterations), accumulatorCapacity(accumulatorCapacity), resolution(resolution), tolerance(tolerance), passTolerance(passTolerance), maxIterations(maxIterations), maxPasses(maxPasses) {}
+  LouvainOptions(int repeat=1, int subsetParts=0, int maxSubIterations=0, size_t accumulatorCapacity=1, T resolution=1, T tolerance=0, T passTolerance=0, int maxIterations=500, int maxPasses=500) :
+  repeat(repeat), subsetParts(subsetParts), maxSubIterations(maxSubIterations), accumulatorCapacity(accumulatorCapacity), resolution(resolution), tolerance(tolerance), passTolerance(passTolerance), maxIterations(maxIterations), maxPasses(maxPasses) {}
 };
 
 

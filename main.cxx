@@ -54,23 +54,23 @@ void runLouvain(const G& x, int repeat) {
   } while(0);
 
   // Using full-capacity accumulator hashtable, but with iteration pre-processing.
-  for (V subsetPercent=0.05; subsetPercent<=1; subsetPercent+=0.05) {
+  for (int subsetParts=2; subsetParts<=64; subsetParts*=2) {
     for (int maxSubIterations=1; maxSubIterations<=256; maxSubIterations*=2) {
-      LouvainResult<K> a = louvainSeq<false>(x, {repeat, subsetPercent, maxSubIterations});
+      LouvainResult<K> a = louvainSeq<false>(x, {repeat, subsetParts, maxSubIterations});
       auto fc = [&](auto u) { return a.membership[u]; };
       auto Q  = modularity(x, fc, M, 1.0f);
-      printf("[%09.3f ms; %04d iterations; %03d passes; %01.6f modularity] louvainSeq {sub_percent=%1.2f, max_sub_iterations=%d}\n", a.time, a.iterations, a.passes, Q, subsetPercent, maxSubIterations);
+      printf("[%09.3f ms; %04d iterations; %03d passes; %01.6f modularity] louvainSeq {sub_parts=%d, max_sub_iterations=%d}\n", a.time, a.iterations, a.passes, Q, subsetParts, maxSubIterations);
     }
   }
 
   // Using limited-capacity accumulator hashtable, and with iteration pre-processing.
   size_t accumulatorCapacity = 4093;
-  for (V subsetPercent=0.05; subsetPercent<=1; subsetPercent+=0.05) {
+  for (int subsetParts=2; subsetParts<=64; subsetParts*=2) {
     for (int maxSubIterations=1; maxSubIterations<=256; maxSubIterations*=2) {
-      LouvainResult<K> a = louvainSeq<true>(x, {repeat, subsetPercent, maxSubIterations, accumulatorCapacity});
+      LouvainResult<K> a = louvainSeq<true>(x, {repeat, subsetParts, maxSubIterations, accumulatorCapacity});
       auto fc = [&](auto u) { return a.membership[u]; };
       auto Q  = modularity(x, fc, M, 1.0f);
-      printf("[%09.3f ms; %04d iterations; %03d passes; %01.6f modularity] louvainSeq {sub_percent=%1.2f, max_sub_iterations=%d, acc_capacity=%zu}\n", a.time, a.iterations, a.passes, Q, subsetPercent, maxSubIterations, accumulatorCapacity);
+      printf("[%09.3f ms; %04d iterations; %03d passes; %01.6f modularity] louvainSeq {sub_parts=%d, max_sub_iterations=%d, acc_capacity=%zu}\n", a.time, a.iterations, a.passes, Q, subsetParts, maxSubIterations, accumulatorCapacity);
     }
   }
 }
