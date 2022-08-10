@@ -40,11 +40,12 @@ const vector<int> PRIMES = {2, 3, 7, 13, 31, 61, 127, 251, 509, 1021, 2039, 4093
 template <class G>
 void runLouvain(const G& x, int repeat) {
   using K = typename G::key_type;
+  using V = typename G::edge_value_type;
   auto M = edgeWeight(x)/2;
   auto Q = modularity(x, M, 1.0f);
   printf("[%01.6f modularity] noop\n", Q);
 
-  // Using full-capacity accumulator hashtable (false).
+  // Using full-capacity accumulator hashtable, no iteration pre-processing.
   do {
     LouvainResult<K> a = louvainSeq<false>(x, {repeat});
     auto fc = [&](auto u) { return a.membership[u]; };
@@ -52,13 +53,26 @@ void runLouvain(const G& x, int repeat) {
     printf("[%09.3f ms; %04d iterations; %03d passes; %01.6f modularity] louvainSeq\n", a.time, a.iterations, a.passes, Q);
   } while(0);
 
-  // Using limited-capacity accumulator hashtable (true).
-  for (size_t accumulatorCapacity : PRIMES) {
-    LouvainResult<K> a = louvainSeq<true>(x, {repeat, accumulatorCapacity});
-    auto fc = [&](auto u) { return a.membership[u]; };
-    auto Q  = modularity(x, fc, M, 1.0f);
-    printf("[%09.3f ms; %04d iterations; %03d passes; %01.6f modularity] louvainSeq {acc_capacity=%zu}\n", a.time, a.iterations, a.passes, Q, accumulatorCapacity);
-  } while(0);
+  // Using full-capacity accumulator hashtable, but with iteration pre-processing.
+  for (V subsetPercent=0.05; subsetPercent<=1; subsetPercent+=0.05) {
+    for (int maxSubIterations=1; maxSubIterations<=256; maxSubIterations*=2) {
+      LouvainResult<K> a = louvainSeq<false>(x, {repeat, subsetPercent, maxSubIterations});
+      auto fc = [&](auto u) { return a.membership[u]; };
+      auto Q  = modularity(x, fc, M, 1.0f);
+      printf("[%09.3f ms; %04d iterations; %03d passes; %01.6f modularity] louvainSeq {sub_percent=%1.2f, max_sub_iterations=%d}\n", a.time, a.iterations, a.passes, Q, subsetPercent, maxSubIterations);
+    }
+  }
+
+  // Using limited-capacity accumulator hashtable, and with iteration pre-processing.
+  size_t accumulatorCapacity = 4093;
+  for (V subsetPercent=0.05; subsetPercent<=1; subsetPercent+=0.05) {
+    for (int maxSubIterations=1; maxSubIterations<=256; maxSubIterations*=2) {
+      LouvainResult<K> a = louvainSeq<true>(x, {repeat, subsetPercent, maxSubIterations, accumulatorCapacity});
+      auto fc = [&](auto u) { return a.membership[u]; };
+      auto Q  = modularity(x, fc, M, 1.0f);
+      printf("[%09.3f ms; %04d iterations; %03d passes; %01.6f modularity] louvainSeq {sub_percent=%1.2f, max_sub_iterations=%d, acc_capacity=%zu}\n", a.time, a.iterations, a.passes, Q, subsetPercent, maxSubIterations, accumulatorCapacity);
+    }
+  }
 }
 
 
@@ -66,7 +80,7 @@ int main(int argc, char **argv) {
   using K = int;
   using V = float;
   char *file = argv[1];
-  int repeat = argc>2? stoi(argv[2]) : 5;
+  int repeat = argc>2? stoi(argv[2]) : 1;
   OutDiGraph<K, None, V> x; V w = 1;
   printf("Loading graph %s ...\n", file);
   readMtxW(x, file); println(x);

@@ -174,6 +174,42 @@ int louvainMove(vector<K>& vcom, vector<V>& ctot, vector<K>& vcs, vector<V>& vco
 
 
 /**
+ * Louvain algorithm's local moving phase.
+ * @param vcom community each vertex belongs to (initial)
+ * @param ctot total edge weight of each community (precalculated)
+ * @param vcs communities vertex u is linked to (temporary buffer)
+ * @param vcout total edge weight from vertex u to community C (temporary buffer)
+ * @param x original graph
+ * @param ks vertex keys (first pass only)
+ * @param vtot total edge weight of each vertex
+ * @param M total weight of "undirected" graph (1/2 of directed graph)
+ * @param R resolution (0, 1]
+ * @param E tolerance (0)
+ * @param L max sub-iterations (500)
+ * @param i vertex key start index
+ * @param I vertex key end index
+ * @returns iterations
+ */
+template <bool H, class G, class K, class V>
+int louvainMove(vector<K>& vcom, vector<V>& ctot, vector<K>& vcs, vector<V>& vcout, const G& x, const vector<K>& ks, const vector<V>& vtot, V M, V R, V E, int L, K i, K I) {
+  K S = x.span(), l = 0; V Q = V();
+  for (; l<L;) {
+    V el = V();
+    for (K ui=i; ui<I; ++ui) {
+      K u = ks[ui];
+      louvainClearScan(vcs, vcout);
+      louvainScanCommunities<H>(vcs, vcout, x, u, vcom);
+      auto [c, e] = louvainChooseCommunity<H>(x, u, vcom, vtot, ctot, vcs, vcout, M, R);
+      if (c)        louvainChangeCommunity(vcom, ctot, x, u, c, vtot);
+      el += e;   // l1-norm
+    } ++l;
+    if (el<=E) break;
+  }
+  return l;
+}
+
+
+/**
  * Louvain algorithm's community aggregation phase.
  * @param a output graph
  * @param x original graph
@@ -229,8 +265,10 @@ auto louvainSeq(const G& x, LouvainOptions<V> o={}) {
   vector<K> vcom(S), vcs, a(S);
   vector<V> vtot(S), ctot(S), vcout(!H? S : o.accumulatorCapacity);
   float t = measureDurationMarked([&](auto mark) {
-    V Q0 = modularity(x, M, R);
-    G y  = duplicate(x);
+    V Q0    = modularity(x, M, R);
+    G y     = duplicate(x);
+    auto ks = vertexKeys(y);  // we want to process low degree vertices first
+    sortValues(ks, [&](K u, K v) { return x.degree(u)!=x.degree(v)? x.degree(u)-x.degree(v) : u-v; });
     fillValueU(vcom, K());
     fillValueU(vtot, V());
     fillValueU(ctot, V());
@@ -239,6 +277,11 @@ auto louvainSeq(const G& x, LouvainOptions<V> o={}) {
       louvainInitialize(vcom, ctot, y, vtot);
       copyValues(vcom, a);
       for (l=0, p=0; p<P;) {
+        if (o.subsetPercent>0 && p==0) {
+          for (K i=0, I=y.order(), DI=K(o.subsetPercent*I); i<I; i+=DI)
+            l += louvainMove<H>(vcom, ctot, vcs, vcout, y, ks, vtot, M, R, E, o.maxSubIterations, i, i+DI);
+          l = int(l*o.subsetPercent);
+        }
         l += louvainMove<H>(vcom, ctot, vcs, vcout, y, vtot, M, R, E, L);
         y =  louvainAggregate(y, vcom); ++p;
         louvainLookupCommunities(a, vcom);
