@@ -54,13 +54,15 @@ void louvainCommunityWeights(vector<V>& ctot, const G& x, const vector<K>& vcom,
  * @param ctot total edge weight of each community
  * @param x original graph
  * @param vtot total edge weight of each vertex
+ * @param vcout total edge weight from vertex u to community C (for capacity)
  */
-template <class G, class K, class V>
-void louvainInitialize(vector<K>& vcom, vector<V>& ctot, const G& x, const vector<V>& vtot) {
+template <bool H, class G, class K, class V>
+void louvainInitialize(vector<K>& vcom, vector<V>& ctot, const G& x, const vector<V>& vtot, const vector<V>& vcout) {
   // vcom, ctot should be filled with 0
   x.forEachVertexKey([&](auto u) {
-    vcom[u] = u;
-    ctot[u] = vtot[u];
+    auto c  = !H? u : u % vcout.size();
+    vcom[u] = c;
+    ctot[c] += vtot[u];
   });
 }
 
@@ -236,7 +238,7 @@ auto louvainSeq(const G& x, LouvainOptions<V> o={}) {
     fillValueU(ctot, V());
     mark([&]() {
       louvainVertexWeights(vtot, y);
-      louvainInitialize(vcom, ctot, y, vtot);
+      louvainInitialize<H>(vcom, ctot, y, vtot, vcout);
       copyValues(vcom, a);
       for (l=0, p=0; p<P;) {
         l += louvainMove<H>(vcom, ctot, vcs, vcout, y, vtot, M, R, E, L);
@@ -249,7 +251,7 @@ auto louvainSeq(const G& x, LouvainOptions<V> o={}) {
         fillValueU(vtot, V());
         fillValueU(ctot, V());
         louvainVertexWeights(vtot, y);
-        louvainInitialize(vcom, ctot, y, vtot);
+        louvainInitialize<H>(vcom, ctot, y, vtot, vcout);
         Q0 = Q;
       }
     });
