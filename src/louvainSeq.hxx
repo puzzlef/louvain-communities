@@ -72,14 +72,18 @@ void louvainInitialize(vector<K>& vcom, vector<V>& ctot, const G& x, const vecto
  * @param x original graph
  * @param u given vertex
  * @param vcom community each vertex belongs to
+ * @param C capacity of accumulator hashtable
  */
-template <bool H, class G, class K, class V>
-void louvainScanCommunities(vector<K>& vcs, vector<V>& vcout, const G& x, K u, const vector<K>& vcom) {
+template <class G, class K, class V>
+void louvainScanCommunities(vector<K>& vcs, vector<V>& vcout, const G& x, K u, const vector<K>& vcom, size_t C) {
   x.forEachEdge(u, [&](auto v, auto w) {
     if (u==v) return;
-    K c = !H? vcom[v] : vcom[v] % vcout.size();
-    if (!vcout[c]) vcs.push_back(c);
-    vcout[c] += w;
+    K c = vcom[v];
+    if (vcout[c]) vcout[c] += w;
+    else if (vcs.size()<C) {
+      vcs.push_back(c);
+      vcout[c] += w;
+    }
   });
 }
 
@@ -110,13 +114,13 @@ void louvainClearScan(vector<K>& vcs, vector<V>& vcout) {
  * @param R resolution (0, 1]
  * @returns [best community, delta modularity]
  */
-template <bool H, class G, class K, class V>
+template <class G, class K, class V>
 auto louvainChooseCommunity(const G& x, K u, const vector<K>& vcom, const vector<V>& vtot, const vector<V>& ctot, const vector<K>& vcs, const vector<V>& vcout, V M, V R) {
-  K cmax  = K(), d = vcom[u], dh = !H? d : d % vcout.size();
+  K cmax  = K(), d = vcom[u];
   V emax  = V();
   for (K c : vcs) {
     if (c==d) continue;
-    V e = deltaModularity(vcout[c], vcout[dh], vtot[u], ctot[c], ctot[d], M, R);
+    V e = deltaModularity(vcout[c], vcout[d], vtot[u], ctot[c], ctot[d], M, R);
     if (e>emax) { emax = e; cmax = c; }
   }
   return make_pair(cmax, emax);
@@ -153,17 +157,18 @@ void louvainChangeCommunity(vector<K>& vcom, vector<V>& ctot, const G& x, K u, K
  * @param R resolution (0, 1]
  * @param E tolerance (0)
  * @param L max iterations (500)
+ * @param C capacity of accumulator hashtable
  * @returns iterations
  */
-template <bool H, class G, class K, class V>
-int louvainMove(vector<K>& vcom, vector<V>& ctot, vector<K>& vcs, vector<V>& vcout, const G& x, const vector<V>& vtot, V M, V R, V E, int L) {
+template <class G, class K, class V>
+int louvainMove(vector<K>& vcom, vector<V>& ctot, vector<K>& vcs, vector<V>& vcout, const G& x, const vector<V>& vtot, V M, V R, V E, int L, size_t C) {
   K S = x.span(), l = 0; V Q = V();
   for (; l<L;) {
     V el = V();
     x.forEachVertexKey([&](auto u) {
       louvainClearScan(vcs, vcout);
-      louvainScanCommunities<H>(vcs, vcout, x, u, vcom);
-      auto [c, e] = louvainChooseCommunity<H>(x, u, vcom, vtot, ctot, vcs, vcout, M, R);
+      louvainScanCommunities(vcs, vcout, x, u, vcom, C);
+      auto [c, e] = louvainChooseCommunity(x, u, vcom, vtot, ctot, vcs, vcout, M, R);
       if (c)        louvainChangeCommunity(vcom, ctot, x, u, c, vtot);
       el += e;   // l1-norm
     }); ++l;
@@ -216,7 +221,7 @@ void louvainLookupCommunities(vector<K>& a, const vector<K>& vcom) {
 }
 
 
-template <bool H, class G, class V=float>
+template <class G, class V=float>
 auto louvainSeq(const G& x, LouvainOptions<V> o={}) {
   using K = typename G::key_type;
   V   R = o.resolution;
@@ -226,8 +231,9 @@ auto louvainSeq(const G& x, LouvainOptions<V> o={}) {
   int P = o.maxPasses, p = 0;
   V   M = edgeWeight(x)/2;
   size_t S = x.span();
+  size_t C = o.accumulatorCapacity? o.accumulatorCapacity : S;
   vector<K> vcom(S), vcs, a(S);
-  vector<V> vtot(S), ctot(S), vcout(!H? S : o.accumulatorCapacity);
+  vector<V> vtot(S), ctot(S), vcout(S);
   float t = measureDurationMarked([&](auto mark) {
     V Q0 = modularity(x, M, R);
     G y  = duplicate(x);
@@ -239,7 +245,7 @@ auto louvainSeq(const G& x, LouvainOptions<V> o={}) {
       louvainInitialize(vcom, ctot, y, vtot);
       copyValues(vcom, a);
       for (l=0, p=0; p<P;) {
-        l += louvainMove<H>(vcom, ctot, vcs, vcout, y, vtot, M, R, E, L);
+        l += louvainMove(vcom, ctot, vcs, vcout, y, vtot, M, R, E, L, C);
         y =  louvainAggregate(y, vcom); ++p;
         louvainLookupCommunities(a, vcom);
         V Q = modularity(y, M, R);

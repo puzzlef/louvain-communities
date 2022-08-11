@@ -19,7 +19,7 @@ struct LouvainOptions {
   int maxIterations;
   int maxPasses;
 
-  LouvainOptions(int repeat=1, size_t accumulatorCapacity=1, T resolution=1, T tolerance=0, T passTolerance=0, int maxIterations=500, int maxPasses=500) :
+  LouvainOptions(int repeat=1, size_t accumulatorCapacity=0, T resolution=1, T tolerance=0, T passTolerance=0, int maxIterations=500, int maxPasses=500) :
   repeat(repeat), accumulatorCapacity(accumulatorCapacity), resolution(resolution), tolerance(tolerance), passTolerance(passTolerance), maxIterations(maxIterations), maxPasses(maxPasses) {}
 };
 
