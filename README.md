@@ -1,4 +1,4 @@
-Effect of adjusting accumulator hashtable capacity of the Louvain algorithm for
+Effect of adjusting accumulator hash function of the Louvain algorithm for
 community detection.
 
 [Louvain] is an algorithm for **detecting communities in graphs**. *Community*
@@ -77,42 +77,24 @@ issues only in the *first few iterations*, when we have a large number of
 communities. In addition, as there is potential for multiple communities to be
 combined, we will consider the *new community* to be the *hash key*.
 
-In this experiment we adjust the capacity of accumulator hashtable from `2` to
-`4093` in multiples of 2. This capacity is always set to the highest prime
-number below a power of 2.  We choose the Louvain *parameters* as `resolution = 1.0`,
-`tolerance = 0` and `passTolerance = 0.5`.  In addition we limit the maximum
-number of iterations in a single local-moving phase with `maxIterations = 500`,
-and limit the maximum number of passes with `maxPasses = 500`. We run the
-Louvain algorithm until convergence (or until the maximum limits are exceeded),
-and measure the **time** **taken** for the *computation* (performed 5 times for
-averaging), the **modularity score**, the **total number of iterations** (in the
-*local-moving* *phase*), and the number of **passes**. This is repeated for
-*seventeen* different graphs.
+In this experiment we try five different hash functions, and adjust the capacity
+of accumulator hashtable from `509` to `4093` in multiples of 2. This capacity
+is always set to the highest prime number below a power of 2.  We choose the
+Louvain *parameters* as `resolution = 1.0`, `tolerance = 0` and `passTolerance = 0.5`.
+In addition we limit the maximum number of iterations in a single
+local-moving phase with `maxIterations = 500`, and limit the maximum number of
+passes with `maxPasses = 500`. We run the Louvain algorithm until convergence
+(or until the maximum limits are exceeded), and measure the **time** **taken**
+for the *computation* (performed 5 times for averaging), the **modularity
+score**, the **total number of iterations** (in the *local-moving* *phase*), and
+the number of **passes**. This is repeated for *seventeen* different graphs.
 
-We however obtain results that are significantly different from our expectations.
-We observe that choosing a **lower accumulator hastable capacity** causes the
-computation to **converge in much longer time**, **require a larger number of**
-**iterations**, a **smaller number of passes**, and **worse modularity**. Choosing
-an accumulator hashtable capacity of `4093` also does not seem to provide any
-advantage over a full-size array based accumulator (except on some graphs, i.e.,
-`soc-LiveJournal1`, `coPapersCiteseer`, `coPapersDBLP`). This is hopefully
-interesting as we observe that this approach of using a limit capacity accumulator
-hashtable seems to work well for the LabelRank algorithm [(1)].
-
-However with higher accumulator labelset capacities, the time taken
-may increase beyond the time required for a full size accumulator labelset. This
-is because of the additional modulus (`%`) operator required with a limited
-capacity accumulator labelset (my expectaction is that this would not
-significantly affect performance in a GPU). Again, a similar effect is observed
-with **modularity** (in the average case), which **increases with increasing**
-**accumulator labelset capacity**. It appears that using an **accumulator labelset**
-**capacity** of `61 / 127` would **yield a good enough modularity**. In some
-cases, using a smaller accumulator labelset capacity yeilds an even better
-modularity than full-size labelsets (but these are exception cases i think).
-Note that choices might differ if a different *labelset capacity* is used. It
-would be interesting to implement this kind of collision-ignoring hash table on
-a GPU, and observe its impact on LabelRank as well as the Louvain algorithm for
-community detection.
+We observe that `magic` **hash function** with an **accumulator hashtable
+capacity** of `4093` appears to perform the **best** among the limited capacity
+hashtable approaches. However it is still worse than the default approach of
+Louvain algorithm. Therefore it seems using a limited capacity accumulator
+hashtable for the Louvain algorithm is not useful, i.e., **we must stick to
+full** **capacity accumulator hashtable**.
 
 All outputs are saved in a [gist] and a small part of the output is listed here.
 Some [charts] are also included below, generated from [sheets]. The input data
@@ -132,35 +114,43 @@ $ ...
 # order: 281903 size: 2312497 [directed] {}
 # order: 281903 size: 3985272 [directed] {} (symmetricize)
 # [-0.000497 modularity] noop
-# [10130.134 ms; 0287 iterations; 009 passes; 0.923316 modularity] louvainSeq
-# [51052.770 ms; 1000 iterations; 002 passes; 0.030269 modularity] louvainSeq {acc_capacity=2}
-# [48293.227 ms; 1000 iterations; 002 passes; 0.151540 modularity] louvainSeq {acc_capacity=3}
-# [37588.156 ms; 1000 iterations; 002 passes; 0.427272 modularity] louvainSeq {acc_capacity=7}
-# [35413.695 ms; 1000 iterations; 002 passes; 0.570421 modularity] louvainSeq {acc_capacity=13}
-# [34431.406 ms; 1000 iterations; 002 passes; 0.653526 modularity] louvainSeq {acc_capacity=31}
-# [35660.219 ms; 1500 iterations; 003 passes; 0.720605 modularity] louvainSeq {acc_capacity=61}
-# [35347.000 ms; 1500 iterations; 003 passes; 0.728701 modularity] louvainSeq {acc_capacity=127}
-# [36584.254 ms; 2000 iterations; 004 passes; 0.750380 modularity] louvainSeq {acc_capacity=251}
-# [36727.715 ms; 2000 iterations; 004 passes; 0.767695 modularity] louvainSeq {acc_capacity=509}
-# [07881.160 ms; 0121 iterations; 004 passes; 0.784888 modularity] louvainSeq {acc_capacity=1021}
-# [04656.739 ms; 0076 iterations; 005 passes; 0.798086 modularity] louvainSeq {acc_capacity=2039}
-# [07468.710 ms; 0127 iterations; 006 passes; 0.809104 modularity] louvainSeq {acc_capacity=4093}
+# [13454.390 ms; 0287 iterations; 009 passes; 0.923316 modularity] louvainSeq
+# [45147.336 ms; 2000 iterations; 004 passes; 0.767695 modularity] louvainSeqDivision {acc_capacity=509}
+# [09683.511 ms; 0121 iterations; 004 passes; 0.784888 modularity] louvainSeqDivision {acc_capacity=1021}
+# [05719.490 ms; 0076 iterations; 005 passes; 0.798086 modularity] louvainSeqDivision {acc_capacity=2039}
+# [09164.935 ms; 0127 iterations; 006 passes; 0.809104 modularity] louvainSeqDivision {acc_capacity=4093}
+# [07792.102 ms; 0153 iterations; 005 passes; 0.769352 modularity] louvainSeqMultiplication {acc_capacity=509}
+# [05540.244 ms; 0109 iterations; 004 passes; 0.786598 modularity] louvainSeqMultiplication {acc_capacity=1021}
+# [03712.969 ms; 0076 iterations; 005 passes; 0.795170 modularity] louvainSeqMultiplication {acc_capacity=2039}
+# [13522.579 ms; 0269 iterations; 004 passes; 0.810318 modularity] louvainSeqMultiplication {acc_capacity=4093}
+# [27546.578 ms; 2000 iterations; 004 passes; 0.769995 modularity] louvainSeqDjb2 {acc_capacity=509}
+# [04609.747 ms; 0096 iterations; 004 passes; 0.785100 modularity] louvainSeqDjb2 {acc_capacity=1021}
+# [05895.703 ms; 0124 iterations; 005 passes; 0.800249 modularity] louvainSeqDjb2 {acc_capacity=2039}
+# [03982.653 ms; 0089 iterations; 006 passes; 0.814499 modularity] louvainSeqDjb2 {acc_capacity=4093}
+# [08986.458 ms; 0184 iterations; 004 passes; 0.772474 modularity] louvainSeqSdbm {acc_capacity=509}
+# [05996.684 ms; 0124 iterations; 004 passes; 0.781377 modularity] louvainSeqSdbm {acc_capacity=1021}
+# [03235.132 ms; 0069 iterations; 005 passes; 0.801154 modularity] louvainSeqSdbm {acc_capacity=2039}
+# [06004.832 ms; 0127 iterations; 005 passes; 0.804691 modularity] louvainSeqSdbm {acc_capacity=4093}
+# [06458.338 ms; 0128 iterations; 004 passes; 0.767416 modularity] louvainSeqMagic {acc_capacity=509}
+# [05665.010 ms; 0113 iterations; 004 passes; 0.783085 modularity] louvainSeqMagic {acc_capacity=1021}
+# [03093.988 ms; 0065 iterations; 005 passes; 0.801779 modularity] louvainSeqMagic {acc_capacity=2039}
+# [04554.626 ms; 0094 iterations; 005 passes; 0.814386 modularity] louvainSeqMagic {acc_capacity=4093}
 #
 # Loading graph /home/subhajit/data/web-BerkStan.mtx ...
 # order: 685230 size: 7600595 [directed] {}
 # order: 685230 size: 13298940 [directed] {} (symmetricize)
 # [-0.000316 modularity] noop
-# [13553.333 ms; 0404 iterations; 009 passes; 0.935729 modularity] louvainSeq
-# [120115.758 ms; 1000 iterations; 002 passes; 0.040547 modularity] louvainSeq {acc_capacity=2}
-# [108734.406 ms; 1000 iterations; 002 passes; 0.159041 modularity] louvainSeq {acc_capacity=3}
-# [89190.539 ms; 1000 iterations; 002 passes; 0.471730 modularity] louvainSeq {acc_capacity=7}
+# [16684.238 ms; 0404 iterations; 009 passes; 0.935729 modularity] louvainSeq
+# [50433.898 ms; 0285 iterations; 004 passes; 0.834423 modularity] louvainSeqDivision {acc_capacity=509}
+# [32044.062 ms; 0177 iterations; 005 passes; 0.842737 modularity] louvainSeqDivision {acc_capacity=1021}
+# [46297.711 ms; 0256 iterations; 004 passes; 0.856244 modularity] louvainSeqDivision {acc_capacity=2039}
 # ...
 ```
 
-[![](https://i.imgur.com/hgM8ncd.png)][sheetp]
-[![](https://i.imgur.com/OA0qHZT.png)][sheetp]
-[![](https://i.imgur.com/V4gTrp9.png)][sheetp]
-[![](https://i.imgur.com/OOUwbQc.png)][sheetp]
+[![](https://i.imgur.com/EXTesTP.png)][sheetp]
+[![](https://i.imgur.com/CgfPIuj.png)][sheetp]
+[![](https://i.imgur.com/9zBlMnK.png)][sheetp]
+[![](https://i.imgur.com/tcnvEB7.png)][sheetp]
 
 <br>
 <br>
@@ -179,7 +169,6 @@ $ ...
 <br>
 
 [![](https://i.imgur.com/x7jvUkt.jpg)](https://www.youtube.com/watch?v=I-PIFYTbBe0)<br>
-[![DOI](https://zenodo.org/badge/516476865.svg)](https://zenodo.org/badge/latestdoi/516476865)
 
 
 [(1)]: https://github.com/puzzlef/labelrank-adjust-accumulator-capacity
@@ -187,7 +176,7 @@ $ ...
 [Prof. Kishore Kothapalli]: https://faculty.iiit.ac.in/~kkishore/
 [SuiteSparse Matrix Collection]: https://sparse.tamu.edu
 [Louvain]: https://en.wikipedia.org/wiki/Louvain_method
-[gist]: https://gist.github.com/wolfram77/0263f2f19d9d5b814632dbf435803edc
-[charts]: https://imgur.com/a/zwSu8Ey
-[sheets]: https://docs.google.com/spreadsheets/d/1swkgG9evcMQerXFFDh76i6DGtI5I5rkHfxsFBqvhC1U/edit?usp=sharing
-[sheetp]: https://docs.google.com/spreadsheets/d/e/2PACX-1vTCZvvRLy_h1u1ueTY8pcWoUT-8NohG2jntvge2U0iRsJ9God1cu7Wzk89BNRWc0cw--MVUJHof6yiZ/pubhtml
+[gist]: https://gist.github.com/wolfram77/7413ec304193901a238108378b7d06e9
+[charts]: https://imgur.com/a/HxCnM2z
+[sheets]: https://docs.google.com/spreadsheets/d/1NrCPwU25peLR8Yl29BAMfrNyL2zlIHvgEF4EoNvFyUg/edit?usp=sharing
+[sheetp]: https://docs.google.com/spreadsheets/d/e/2PACX-1vTFPR38ZidzcBULWggiCGnRehCBi3dY9-cUulJI9YQ8GOx_UIxwGG0UWymZF5vfv2uHkyi6Y82nC8Ep/pubhtml
