@@ -3,9 +3,9 @@ const os = require('os');
 const path = require('path');
 
 const RGRAPH = /^Loading graph .*\/(.*?)\.mtx \.\.\./m;
-const RORDER = /^order: (\d+) size: (\d+) (?:\[\w+\] )?\{\} \(selfLoopAllVertices\)/m;
+const RORDER = /^order: (\d+) size: (\d+) (?:\[\w+\] )?\{\} \(symmetricize\)/m;
 const RORGNL = /^\[(\S+?) modularity\] noop/;
-const RRESLT = /^\[(\S+?) ms; (\d+) iterations; (\d+) passes; (\S+?) modularity\] louvainSeq(?: \{acc_capacity=(\d+)\})?/m;
+const RRESLT = /^\[(\S+?) ms; (\d+) iterations; (\d+) passes; (\S+?) modularity\] (\w+)(?: \{acc_capacity=(\d+)\})?/m;
 
 
 
@@ -61,16 +61,18 @@ function readLogLine(ln, data, state) {
       iterations:           0,
       passes:               0,
       modularity:           parseFloat(modularity),
+      technique:            'noop',
       accumulator_capacity: 0,
     }));
   }
   else if (RRESLT.test(ln)) {
-    var [, time, iterations, passes, modularity, accumulator_capacity] = RRESLT.exec(ln);
+    var [, time, iterations, passes, modularity, technique, accumulator_capacity] = RRESLT.exec(ln);
     data.get(state.graph).push(Object.assign({}, state, {
       time:                 parseFloat(time),
       iterations:           parseFloat(iterations),
       passes:               parseFloat(passes),
       modularity:           parseFloat(modularity),
+      technique,
       accumulator_capacity: parseFloat(accumulator_capacity || '0'),
     }));
   }
