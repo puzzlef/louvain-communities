@@ -169,6 +169,7 @@ $ ...
 <br>
 
 [![](https://i.imgur.com/x7jvUkt.jpg)](https://www.youtube.com/watch?v=I-PIFYTbBe0)<br>
+[![DOI](https://zenodo.org/badge/523278722.svg)](https://zenodo.org/badge/latestdoi/523278722)
 
 
 [(1)]: https://github.com/puzzlef/labelrank-adjust-accumulator-capacity
