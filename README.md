@@ -1,5 +1,5 @@
-Effect of adjusting accumulator hashtable capacity of the Louvain algorithm for
-community detection.
+Effect of adjusting capacity of collision handled accumulator hashtable of the
+Louvain algorithm for community detection.
 
 [Louvain] is an algorithm for **detecting communities in graphs**. *Community*
 *detection* helps us understand the *natural divisions in a network* in an
@@ -68,14 +68,14 @@ the **global memory** instead (which is slow). In addition, we would have to
 use `atomicCAS()` operations in order to **avoid collisions** which can further
 drop performance.
 
-Therefore, here my idea is to look if we can simply **do away** with **large**
+Originally, my idea was to look if we can simply **do away** with **large**
 **hash tables** and **collision resolution** altogether, by simply *considering*
-*identical hash keys* as *identical labels*. This may lead to *bad communities*,
-but that is what this experiment is for. If they do yield good communities it
-can be a big win in performance. Note that such a scheme is only likely to cause
-issues only in the *first few iterations*, when we have a large number of
-communities. In addition, as there is potential for multiple communities to be
-combined, we will consider the *new community* to be the *hash key*.
+*identical hash keys* as *identical labels*. However, either due to a mistake of
+my own or due to the limit to the total number of communities enforced by the
+lack of collision resolution, the quality of communitied (based on modularity)
+were really bad. Therefore, with this experiment, we put in place **proper**
+**collision resolution** *(algorithmically)*, but still *restrict the capacity of the*
+*accumulator hashtable*. As you will read later, this gives us good results.
 
 In this experiment we adjust the capacity of accumulator hashtable from `2` to
 `4093` in multiples of 2. This capacity is always set to the highest prime
@@ -89,30 +89,18 @@ averaging), the **modularity score**, the **total number of iterations** (in the
 *local-moving* *phase*), and the number of **passes**. This is repeated for
 *seventeen* different graphs.
 
-We however obtain results that are significantly different from our expectations.
-We observe that choosing a **lower accumulator hastable capacity** causes the
-computation to **converge in much longer time**, **require a larger number of**
-**iterations**, a **smaller number of passes**, and **worse modularity**. Choosing
-an accumulator hashtable capacity of `4093` also does not seem to provide any
-advantage over a full-size array based accumulator (except on some graphs, i.e.,
-`soc-LiveJournal1`, `coPapersCiteseer`, `coPapersDBLP`). This is hopefully
-interesting as we observe that this approach of using a limit capacity accumulator
-hashtable seems to work well for the LabelRank algorithm [(1)].
-
-However with higher accumulator labelset capacities, the time taken
-may increase beyond the time required for a full size accumulator labelset. This
-is because of the additional modulus (`%`) operator required with a limited
-capacity accumulator labelset (my expectaction is that this would not
-significantly affect performance in a GPU). Again, a similar effect is observed
-with **modularity** (in the average case), which **increases with increasing**
-**accumulator labelset capacity**. It appears that using an **accumulator labelset**
-**capacity** of `61 / 127` would **yield a good enough modularity**. In some
-cases, using a smaller accumulator labelset capacity yeilds an even better
-modularity than full-size labelsets (but these are exception cases i think).
-Note that choices might differ if a different *labelset capacity* is used. It
-would be interesting to implement this kind of collision-ignoring hash table on
-a GPU, and observe its impact on LabelRank as well as the Louvain algorithm for
-community detection.
+From the results we observe that we can achieve good modularity with accumulator
+capacity of `7+`. We are able to obtain such good quality communities within the
+least amount of time with an accumulator capacity of `31+`, and with the least
+number of iterations with an accumulator capacity of `127+`. We therefore conclude
+that using a limited capacity accumulator hashtable of `251` with `~50%` occupancy
+would be a suitable for community detection using the Louvain algorithm on limited
+memory parallel devices such as the GPU. We may also go down to a hashtable capacity
+of `61` and still achieve good communities in a small amount of time. If time is not
+a concern (due to high-degree of parallelism achieved with small hashtables), an
+accumulator capacity of `13` may also be used. If minimization of collisions is not
+important (thanks to parallel memory scanning), then an accumulator capacity of `7`
+may also be attempted.
 
 All outputs are saved in a [gist] and a small part of the output is listed here.
 Some [charts] are also included below, generated from [sheets]. The input data
@@ -132,35 +120,35 @@ $ ...
 # order: 281903 size: 2312497 [directed] {}
 # order: 281903 size: 3985272 [directed] {} (symmetricize)
 # [-0.000497 modularity] noop
-# [10130.134 ms; 0287 iterations; 009 passes; 0.923316 modularity] louvainSeq
-# [51052.770 ms; 1000 iterations; 002 passes; 0.030269 modularity] louvainSeq {acc_capacity=2}
-# [48293.227 ms; 1000 iterations; 002 passes; 0.151540 modularity] louvainSeq {acc_capacity=3}
-# [37588.156 ms; 1000 iterations; 002 passes; 0.427272 modularity] louvainSeq {acc_capacity=7}
-# [35413.695 ms; 1000 iterations; 002 passes; 0.570421 modularity] louvainSeq {acc_capacity=13}
-# [34431.406 ms; 1000 iterations; 002 passes; 0.653526 modularity] louvainSeq {acc_capacity=31}
-# [35660.219 ms; 1500 iterations; 003 passes; 0.720605 modularity] louvainSeq {acc_capacity=61}
-# [35347.000 ms; 1500 iterations; 003 passes; 0.728701 modularity] louvainSeq {acc_capacity=127}
-# [36584.254 ms; 2000 iterations; 004 passes; 0.750380 modularity] louvainSeq {acc_capacity=251}
-# [36727.715 ms; 2000 iterations; 004 passes; 0.767695 modularity] louvainSeq {acc_capacity=509}
-# [07881.160 ms; 0121 iterations; 004 passes; 0.784888 modularity] louvainSeq {acc_capacity=1021}
-# [04656.739 ms; 0076 iterations; 005 passes; 0.798086 modularity] louvainSeq {acc_capacity=2039}
-# [07468.710 ms; 0127 iterations; 006 passes; 0.809104 modularity] louvainSeq {acc_capacity=4093}
+# [13021.103 ms; 0287 iterations; 009 passes; 0.923316 modularity] louvainSeq
+# [27113.324 ms; 1026 iterations; 009 passes; 0.905717 modularity] louvainSeq {acc_capacity=2}
+# [26685.023 ms; 1070 iterations; 009 passes; 0.917865 modularity] louvainSeq {acc_capacity=3}
+# [25197.309 ms; 0807 iterations; 009 passes; 0.926431 modularity] louvainSeq {acc_capacity=7}
+# [12712.631 ms; 0672 iterations; 009 passes; 0.927234 modularity] louvainSeq {acc_capacity=13}
+# [12141.696 ms; 0290 iterations; 009 passes; 0.926465 modularity] louvainSeq {acc_capacity=31}
+# [13137.970 ms; 0290 iterations; 009 passes; 0.923675 modularity] louvainSeq {acc_capacity=61}
+# [13357.952 ms; 0290 iterations; 009 passes; 0.923293 modularity] louvainSeq {acc_capacity=127}
+# [13179.921 ms; 0287 iterations; 009 passes; 0.923329 modularity] louvainSeq {acc_capacity=251}
+# [12717.114 ms; 0287 iterations; 009 passes; 0.923321 modularity] louvainSeq {acc_capacity=509}
+# [12869.202 ms; 0287 iterations; 009 passes; 0.923316 modularity] louvainSeq {acc_capacity=1021}
+# [12868.821 ms; 0287 iterations; 009 passes; 0.923316 modularity] louvainSeq {acc_capacity=2039}
+# [13307.006 ms; 0287 iterations; 009 passes; 0.923316 modularity] louvainSeq {acc_capacity=4093}
 #
 # Loading graph /home/subhajit/data/web-BerkStan.mtx ...
 # order: 685230 size: 7600595 [directed] {}
 # order: 685230 size: 13298940 [directed] {} (symmetricize)
 # [-0.000316 modularity] noop
-# [13553.333 ms; 0404 iterations; 009 passes; 0.935729 modularity] louvainSeq
-# [120115.758 ms; 1000 iterations; 002 passes; 0.040547 modularity] louvainSeq {acc_capacity=2}
-# [108734.406 ms; 1000 iterations; 002 passes; 0.159041 modularity] louvainSeq {acc_capacity=3}
-# [89190.539 ms; 1000 iterations; 002 passes; 0.471730 modularity] louvainSeq {acc_capacity=7}
+# [17659.744 ms; 0404 iterations; 009 passes; 0.935729 modularity] louvainSeq
+# [41365.871 ms; 1525 iterations; 009 passes; 0.876490 modularity] louvainSeq {acc_capacity=2}
+# [40255.496 ms; 1112 iterations; 009 passes; 0.902975 modularity] louvainSeq {acc_capacity=3}
+# [41355.492 ms; 1260 iterations; 009 passes; 0.934294 modularity] louvainSeq {acc_capacity=7}
 # ...
 ```
 
-[![](https://i.imgur.com/hgM8ncd.png)][sheetp]
-[![](https://i.imgur.com/OA0qHZT.png)][sheetp]
-[![](https://i.imgur.com/V4gTrp9.png)][sheetp]
-[![](https://i.imgur.com/OOUwbQc.png)][sheetp]
+[![](https://i.imgur.com/4nOYacx.png)][sheetp]
+[![](https://i.imgur.com/YAinlLo.png)][sheetp]
+[![](https://i.imgur.com/ZbQbAYU.png)][sheetp]
+[![](https://i.imgur.com/qlBnyKc.png)][sheetp]
 
 <br>
 <br>
@@ -179,7 +167,6 @@ $ ...
 <br>
 
 [![](https://i.imgur.com/x7jvUkt.jpg)](https://www.youtube.com/watch?v=I-PIFYTbBe0)<br>
-[![DOI](https://zenodo.org/badge/516476865.svg)](https://zenodo.org/badge/latestdoi/516476865)
 
 
 [(1)]: https://github.com/puzzlef/labelrank-adjust-accumulator-capacity
@@ -187,7 +174,7 @@ $ ...
 [Prof. Kishore Kothapalli]: https://faculty.iiit.ac.in/~kkishore/
 [SuiteSparse Matrix Collection]: https://sparse.tamu.edu
 [Louvain]: https://en.wikipedia.org/wiki/Louvain_method
-[gist]: https://gist.github.com/wolfram77/0263f2f19d9d5b814632dbf435803edc
-[charts]: https://imgur.com/a/zwSu8Ey
-[sheets]: https://docs.google.com/spreadsheets/d/1swkgG9evcMQerXFFDh76i6DGtI5I5rkHfxsFBqvhC1U/edit?usp=sharing
-[sheetp]: https://docs.google.com/spreadsheets/d/e/2PACX-1vTCZvvRLy_h1u1ueTY8pcWoUT-8NohG2jntvge2U0iRsJ9God1cu7Wzk89BNRWc0cw--MVUJHof6yiZ/pubhtml
+[gist]: https://gist.github.com/wolfram77/5d7ce8a692f492c22978c0136bf1c433
+[charts]: https://imgur.com/a/zNyK91h
+[sheets]: https://docs.google.com/spreadsheets/d/1EXI6sgLTqN_l6ov6z7VlnMSp0e7aZJJ482JsGy6QZ9s/edit?usp=sharing
+[sheetp]: https://docs.google.com/spreadsheets/d/e/2PACX-1vRmA3B-0GEtd25DFjg-QlMYmu6qBvRRsAHop29FBRu_zh_eWWnZr-i0t8lS1yb-T8kwcAWLIRyTSKhM/pubhtml
