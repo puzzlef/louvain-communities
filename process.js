@@ -3,7 +3,7 @@ const os = require('os');
 const path = require('path');
 
 const RGRAPH = /^Loading graph .*\/(.*?)\.mtx \.\.\./m;
-const RORDER = /^order: (\d+) size: (\d+) (?:\[\w+\] )?\{\} \(selfLoopAllVertices\)/m;
+const RORDER = /^order: (\d+) size: (\d+) (?:\[\w+\] )?\{\} \(symmetricize\)/m;
 const RORGNL = /^\[(\S+?) modularity\] noop/;
 const RRESLT = /^\[(\S+?) ms; (\d+) iterations; (\d+) passes; (\S+?) modularity\] louvainSeq(?: \{acc_capacity=(\d+)\})?/m;
 
