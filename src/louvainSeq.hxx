@@ -226,15 +226,15 @@ template <bool O, class G, class V=float>
 auto louvainSeq(const G& x, LouvainOptions<V> o={}) {
   using K = typename G::key_type;
   V   R = o.resolution;
-  V   E = o.tolerance;
   V   D = o.passTolerance;
-  int L = o.maxIterations,      l = 0;
+  int L = o.maxIterations, l = 0;
   int P = o.maxPasses, p = 0;
   V   M = edgeWeight(x)/2;
   size_t S = x.span();
   vector<K> vdom(S), vcom(S), vcs, a(S);
   vector<V> vtot(S), dtot(S), ctot(S), vcout(S);
   float t = measureDurationMarked([&](auto mark) {
+    V E  = o.tolerance;
     V Q0 = modularity(x, M, R);
     G y  = duplicate(x);
     fillValueU(vcom, K());
@@ -257,6 +257,7 @@ auto louvainSeq(const G& x, LouvainOptions<V> o={}) {
         fillValueU(ctot, V());
         louvainVertexWeights(vtot, y);
         louvainInitialize(vcom, ctot, y, vtot);
+        E /= o.toleranceDeclineFactor;
         Q0 = Q;
       }
     });

@@ -15,11 +15,12 @@ struct LouvainOptions {
   T   resolution;
   T   tolerance;
   T   passTolerance;
+  T   toleranceDeclineFactor;
   int maxIterations;
   int maxPasses;
 
-  LouvainOptions(int repeat=1, T resolution=1, T tolerance=0, T passTolerance=0, int maxIterations=500, int maxPasses=500) :
-  repeat(repeat), resolution(resolution), tolerance(tolerance), passTolerance(passTolerance), maxIterations(maxIterations), maxPasses(maxPasses) {}
+  LouvainOptions(int repeat=1, T resolution=1, T tolerance=1e-2, T passTolerance=0, T toleranceDeclineFactor=10, int maxIterations=500, int maxPasses=500) :
+  repeat(repeat), resolution(resolution), tolerance(tolerance), passTolerance(passTolerance), toleranceDeclineFactor(toleranceDeclineFactor), maxIterations(maxIterations), maxPasses(maxPasses) {}
 };
 
 
