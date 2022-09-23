@@ -18,7 +18,7 @@ using std::min;
 // LOUVAIN-SEQ
 // -----------
 
-template <class G, class K, class V, class FA, class FP>
+template <int NORM=1, class G, class K, class V, class FA, class FP>
 auto louvainSeq(const G& x, const vector<K>* q, const LouvainOptions<V>& o, FA fa, FP fp) {
   V   R = o.resolution;
   V   D = o.passTolerance;
@@ -42,8 +42,8 @@ auto louvainSeq(const G& x, const vector<K>* q, const LouvainOptions<V>& o, FA f
       if (q) louvainCommunityWeights(ctot, y, vcom, vtot);
       copyValues(vcom, a);
       for (l=0, p=0; p<P;) {
-        if (p==0) l += louvainMove(vcom, ctot, vcs, vcout, y, vtot, M, R, E, L, fa, fp);
-        else      l += louvainMove(vcom, ctot, vcs, vcout, y, vtot, M, R, E, L);
+        if (p==0) l += louvainMove<NORM>(vcom, ctot, vcs, vcout, y, vtot, M, R, E, L, fa, fp);
+        else      l += louvainMove<NORM>(vcom, ctot, vcs, vcout, y, vtot, M, R, E, L);
         y  = louvainAggregate(vcs, vcout, y, vcom); ++p;
         louvainLookupCommunities(a, vcom);
         V Q = modularity(y, M, R);
@@ -60,15 +60,15 @@ auto louvainSeq(const G& x, const vector<K>* q, const LouvainOptions<V>& o, FA f
   }, o.repeat);
   return LouvainResult<K>(a, l, p, t);
 }
-template <class G, class K, class V, class FA>
+template <int NORM=1, class G, class K, class V, class FA>
 inline auto louvainSeq(const G& x, const vector<K>* q, const LouvainOptions<V>& o, FA fa) {
   auto fp = [](auto u) {};
-  return louvainSeq(x, q, o, fa, fp);
+  return louvainSeq<NORM>(x, q, o, fa, fp);
 }
-template <class G, class K, class V>
+template <int NORM=1, class G, class K, class V>
 inline auto louvainSeq(const G& x, const vector<K>* q, const LouvainOptions<V>& o) {
   auto fa = [](auto u) { return true; };
-  return louvainSeq(x, q, o, fa);
+  return louvainSeq<NORM>(x, q, o, fa);
 }
 
 
@@ -77,9 +77,9 @@ inline auto louvainSeq(const G& x, const vector<K>* q, const LouvainOptions<V>& 
 // LOUVAIN-SEQ-STATIC
 // ------------------
 
-template <class G, class K, class V=float>
+template <int NORM=1, class G, class K, class V=float>
 inline auto louvainSeqStatic(const G& x, const vector<K>* q=nullptr, const LouvainOptions<V>& o={}) {
-  return louvainSeq(x, q, o);
+  return louvainSeq<NORM>(x, q, o);
 }
 
 
@@ -88,7 +88,7 @@ inline auto louvainSeqStatic(const G& x, const vector<K>* q=nullptr, const Louva
 // LOUVAIN-SEQ-DYNAMIC-DELTA-SCREENING
 // -----------------------------------
 
-template <class G, class K, class V>
+template <int NORM=1, class G, class K, class V>
 inline auto louvainSeqDynamicDeltaScreening(const G& x, const vector<tuple<K, K>>& deletions, const vector<tuple<K, K, V>>& insertions, const vector<K>* q, const LouvainOptions<V>& o={}) {
   K S = x.span();
   V R = o.resolution;
@@ -99,7 +99,7 @@ inline auto louvainSeqDynamicDeltaScreening(const G& x, const vector<tuple<K, K>
   louvainCommunityWeights(ctot, x, vcom, vtot);
   auto vaff = louvainAffectedVerticesDeltaScreening(x, deletions, insertions, vcom, vtot, ctot, M, R);
   auto fa   = [&](auto u) { return vaff[u]==true; };
-  return louvainSeq(x, q, o, fa);
+  return louvainSeq<NORM>(x, q, o, fa);
 }
 
 
@@ -108,12 +108,12 @@ inline auto louvainSeqDynamicDeltaScreening(const G& x, const vector<tuple<K, K>
 // LOUVAIN-SEQ-DYNAMIC-FRONTIER
 // ----------------------------
 
-template <class G, class K, class V>
+template <int NORM=1, class G, class K, class V>
 inline auto louvainSeqDynamicFrontier(const G& x, const vector<tuple<K, K>>& deletions, const vector<tuple<K, K, V>>& insertions, const vector<K>* q, const LouvainOptions<V>& o={}) {
   K S = x.span();
   const vector<K>& vcom = *q;
   auto vaff = louvainAffectedVerticesFrontier(x, deletions, insertions, vcom);
   auto fa = [&](auto u) { return vaff[u]==true; };
   auto fp = [&](auto u) { x.forEachEdgeKey(u, [&](auto v) { vaff[v] = true; }); };
-  return louvainSeq(x, q, o, fa, fp);
+  return louvainSeq<NORM>(x, q, o, fa, fp);
 }

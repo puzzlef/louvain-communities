@@ -16,4 +16,3 @@
 #include "random.hxx"
 #include "louvain.hxx"
 #include "louvainSeq.hxx"
-#include "louvainOmp.hxx"

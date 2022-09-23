@@ -1,6 +1,7 @@
 #pragma once
 #include <utility>
 #include <vector>
+#include <algorithm>
 #include "_main.hxx"
 #include "Graph.hxx"
 #include "duplicate.hxx"
@@ -12,6 +13,7 @@ using std::vector;
 using std::get;
 using std::move;
 using std::make_pair;
+using std::max;
 
 
 
@@ -221,7 +223,7 @@ void louvainChangeCommunity(vector<K>& vcom, vector<V>& ctot, const G& x, K u, K
  * @param fp process vertices whose communities have changed
  * @returns iterations performed
  */
-template <class G, class K, class V, class FA, class FP>
+template <int NORM=1, class G, class K, class V, class FA, class FP>
 int louvainMove(vector<K>& vcom, vector<V>& ctot, vector<K>& vcs, vector<V>& vcout, const G& x, const vector<V>& vtot, V M, V R, V E, int L, FA fa, FP fp) {
   K S = x.span();
   int l = 0; V Q = V();
@@ -233,21 +235,23 @@ int louvainMove(vector<K>& vcom, vector<V>& ctot, vector<K>& vcs, vector<V>& vco
       louvainScanCommunities(vcs, vcout, x, u, vcom);
       auto [c, e] = louvainChooseCommunity(x, u, vcom, vtot, ctot, vcs, vcout, M, R);
       if (c)      { louvainChangeCommunity(vcom, ctot, x, u, c, vtot); fp(u); }
-      el += e;  // l1-norm
+      if (NORM==1)      el += e;          // l1-norm
+      else if (NORM==2) el += e*e;        // l2-norm
+      else              el = max(el, e);  // li-norm
     }); ++l;
     if (el<=E) break;
   }
   return l;
 }
-template <class G, class K, class V, class FA>
+template <int NORM=1, class G, class K, class V, class FA>
 inline int louvainMove(vector<K>& vcom, vector<V>& ctot, vector<K>& vcs, vector<V>& vcout, const G& x, const vector<V>& vtot, V M, V R, V E, int L, FA fa) {
   auto fp = [](auto u) {};
-  return louvainMove(vcom, ctot, vcs, vcout, x, vtot, M, R, E, L, fa, fp);
+  return louvainMove<NORM>(vcom, ctot, vcs, vcout, x, vtot, M, R, E, L, fa, fp);
 }
-template <class G, class K, class V>
+template <int NORM=1, class G, class K, class V>
 inline int louvainMove(vector<K>& vcom, vector<V>& ctot, vector<K>& vcs, vector<V>& vcout, const G& x, const vector<V>& vtot, V M, V R, V E, int L) {
   auto fa = [](auto u) { return true; };
-  return louvainMove(vcom, ctot, vcs, vcout, x, vtot, M, R, E, L, fa);
+  return louvainMove<NORM>(vcom, ctot, vcs, vcout, x, vtot, M, R, E, L, fa);
 }
 
 
