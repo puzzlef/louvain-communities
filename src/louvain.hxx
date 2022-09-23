@@ -150,10 +150,10 @@ void louvainScanCommunities(vector<K>& vcs, vector<V>& vcout, const G& x, K u, c
  * @param vcs total edge weight from vertex u to community C (updated)
  * @param vcout communities vertex u is linked to (updated)
  */
-template <class K, class V>
+template <bool CAP=false, class K, class V>
 void louvainClearScan(vector<K>& vcs, vector<V>& vcout) {
   for (K c : vcs)
-    vcout[c] = V();
+    vcout[!CAP? c : c % vcout.size()] = V();
   vcs.clear();
 }
 
@@ -234,7 +234,7 @@ int louvainMove(vector<K>& vcom, vector<V>& ctot, vector<K>& vcs, vector<V>& vco
     V el = V();
     x.forEachVertexKey([&](auto u) {
       if (!fa(u)) return;
-      louvainClearScan(vcs, vcout);
+      louvainClearScan<CAP>(vcs, vcout);
       louvainScanCommunities<false, CAP>(vcs, vcout, x, u, vcom);
       auto [c, e] = louvainChooseCommunity<false, CAP>(x, u, vcom, vtot, ctot, vcs, vcout, M, R);
       if (c)      { louvainChangeCommunity(vcom, ctot, x, u, c, vtot); fp(u); }
@@ -278,24 +278,24 @@ auto louvainCommunityVertices(const G& x, const vector<K>& vcom) {
  * @param x original graph
  * @param vcom community each vertex belongs to
  */
-template <class G, class K, class V>
+template <bool CAP=false, class G, class K, class V>
 void louvainAggregate(G& a, vector<K>& vcs, vector<V>& vcout, const G& x, const vector<K>& vcom) {
   K S = x.span();
   auto comv = louvainCommunityVertices(x, vcom);
   for (K c=0; c<comv.size(); ++c) {
     if (comv[c].empty()) continue;
-    louvainClearScan(vcs, vcout);
+    louvainClearScan<CAP>(vcs, vcout);
     for (K u : comv[c])
-      louvainScanCommunities<true>(vcs, vcout, x, u, vcom);
+      louvainScanCommunities<true, CAP>(vcs, vcout, x, u, vcom);
     a.addVertex(c);
     for (auto d : vcs)
-      a.addEdge(c, d, vcout[d]);
+      a.addEdge(c, d, vcout[!CAP? d : d % vcout.size()]);
   }
   a.correct();
 }
-template <class G, class K, class V>
+template <bool CAP=false, class G, class K, class V>
 inline auto louvainAggregate(vector<K>& vcs, vector<V>& vcout, const G& x, const vector<K>& vcom) {
-  G a; louvainAggregate(a, vcs, vcout, x, vcom);
+  G a; louvainAggregate<CAP>(a, vcs, vcout, x, vcom);
   return a;
 }
 
