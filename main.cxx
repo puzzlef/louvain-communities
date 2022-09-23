@@ -10,6 +10,14 @@ using namespace std;
 
 
 
+// You can define datatype with -DTYPE=...
+#ifndef TYPE
+#define TYPE float
+#endif
+
+
+
+
 // The problem with using a large accumulator hashtable is that it is not
 // feasible on a GPU, where we have a large number of threads, but a small
 // amount of working memory (shared memory). To alleviate this, we may use
@@ -37,41 +45,48 @@ using namespace std;
 const vector<int> PRIMES = {2, 3, 7, 13, 31, 61, 127, 251, 509, 1021, 2039, 4093};
 
 
+
+
+template <class G, class K, class V>
+double getModularity(const G& x, const LouvainResult<K>& a, V M) {
+  auto fc = [&](auto u) { return a.membership[u]; };
+  return modularity(x, fc, M, V(1));
+}
+
+
 template <class G>
 void runLouvain(const G& x, int repeat) {
   using K = typename G::key_type;
+  using V = typename G::edge_value_type;
+  vector<K> *init = nullptr;
   auto M = edgeWeight(x)/2;
   auto Q = modularity(x, M, 1.0f);
   printf("[%01.6f modularity] noop\n", Q);
 
   // Using full-capacity accumulator hashtable (false).
   do {
-    LouvainResult<K> a = louvainSeq<false>(x, {repeat});
-    auto fc = [&](auto u) { return a.membership[u]; };
-    auto Q  = modularity(x, fc, M, 1.0f);
-    printf("[%09.3f ms; %04d iterations; %03d passes; %01.6f modularity] louvainSeq\n", a.time, a.iterations, a.passes, Q);
+    LouvainResult<K> a = louvainSeqStatic<false>(x, init, {repeat});
+    printf("[%09.3f ms; %04d iterations; %03d passes; %01.6f modularity] louvainSeq\n", a.time, a.iterations, a.passes, getModularity(x, a, M));
   } while(0);
 
   // Using limited-capacity accumulator hashtable (true).
   for (size_t accumulatorCapacity : PRIMES) {
-    LouvainResult<K> a = louvainSeq<true>(x, {repeat, accumulatorCapacity});
-    auto fc = [&](auto u) { return a.membership[u]; };
-    auto Q  = modularity(x, fc, M, 1.0f);
-    printf("[%09.3f ms; %04d iterations; %03d passes; %01.6f modularity] louvainSeq {acc_capacity=%zu}\n", a.time, a.iterations, a.passes, Q, accumulatorCapacity);
+    LouvainResult<K> a = louvainSeqStatic<true>(x, init, {repeat, accumulatorCapacity});
+    printf("[%09.3f ms; %04d iterations; %03d passes; %01.6f modularity] louvainSeq {acc_capacity=%zu}\n", a.time, a.iterations, a.passes, getModularity(x, a, M), accumulatorCapacity);
   } while(0);
 }
 
 
 int main(int argc, char **argv) {
   using K = int;
-  using V = float;
+  using V = TYPE;
   char *file = argv[1];
   int repeat = argc>2? stoi(argv[2]) : 5;
   OutDiGraph<K, None, V> x; V w = 1;
   printf("Loading graph %s ...\n", file);
   readMtxW(x, file); println(x);
-  auto y  = symmetricize(x); print(y); printf(" (symmetricize)\n");
-  auto fl = [](auto u) { return true; };
+  auto y = symmetricize(x); print(y); printf(" (symmetricize)\n");
+  // auto fl = [](auto u) { return true; };
   // selfLoopU(y, w, fl); print(y); printf(" (selfLoopAllVertices)\n");
   runLouvain(y, repeat);
   printf("\n");
