@@ -51,7 +51,7 @@ void readMtxDo(istream& s, FV fv, FE fe) {
     if (!(ls >> u >> v)) break;
     ls >> w;
     fe(u, v, w);  // a.addEdge(u, v);
-    if (sym) fe(u, v, w);  // a.addEdge(v, u);
+    if (sym) fe(v, u, w);  // a.addEdge(v, u);
   }
 }
 

@@ -6,12 +6,14 @@
 #include <functional>
 #include <vector>
 #include <unordered_map>
+#include <map>
 #include "_queue.hxx"
 
 using std::remove_reference_t;
 using std::iterator_traits;
 using std::vector;
 using std::unordered_map;
+using std::map;
 using std::hash;
 using std::move;
 using std::distance;
@@ -309,31 +311,31 @@ inline auto groupValues(const J& x, M& a) {
 
 
 template <class I, class FM>
-inline auto group_values_unordered_map(I ib, I ie, FM fm) {
+inline auto group_values_map(I ib, I ie, FM fm) {
   using K = remove_reference_t<decltype(fm(*ib))>;
   using V = typename iterator_traits<I>::value_type;
-  unordered_map<K, vector<V>> a;
+  map<K, vector<V>> a;
   return group_values(ib, ie, a, fm);
 }
 template <class I>
-inline auto group_values_unordered_map(I ib, I ie) {
+inline auto group_values_map(I ib, I ie) {
   auto fm = [](const auto& v) { return v; };
-  return group_values_unordered_map(ib, ie, fm);
+  return group_values_map(ib, ie, fm);
 }
 template <class J, class FM>
-inline auto groupValuesUnorderedMap(const J& x, FM fm) {
-  return group_values_unordered_map(x.begin(), x.end(), fm);
+inline auto groupValuesMap(const J& x, FM fm) {
+  return group_values_map(x.begin(), x.end(), fm);
 }
 template <class J>
-inline auto groupValuesUnorderedMap(const J& x) {
-  return group_values_unordered_map(x.begin(), x.end());
+inline auto groupValuesMap(const J& x) {
+  return group_values_map(x.begin(), x.end());
 }
 
 
 template <class I, class FM>
 inline auto group_values_vector(I ib, I ie, FM fm) {
   using V = typename iterator_traits<I>::value_type; vector<vector<V>> a;
-  auto gs = group_values_unordered_map(ib, ie, fm);
+  auto gs = group_values_map(ib, ie, fm);
   for (const auto& [k, g] : gs)
     a.push_back(move(g));
   return a;

@@ -1,10 +1,12 @@
 #pragma once
 #include <type_traits>
 #include <vector>
+#include <unordered_map>
 #include "_main.hxx"
 
 using std::remove_reference_t;
 using std::vector;
+using std::unordered_map;
 
 
 
@@ -96,6 +98,28 @@ inline auto decompressContainer(const G& x, const vector<T>& vs) {
 }
 
 
+template <class G, class K>
+inline void decompressKeyContainerW(vector<K>& a, const G& x, const vector<K>& vs, const vector<K>& ks) {
+  auto fm = [&](auto i) { return ks[i]; };
+  scatterValuesW(a, vs, ks, fm);
+}
+template <class G, class K>
+inline void decompressKeyContainerW(vector<K>& a, const G& x, const vector<K>& vs) {
+  decompressKeyContainerW(a, x, vs, vertexKeys(x));
+}
+
+template <class G, class K>
+inline auto decompressContainer(const G& x, const vector<K>& vs, const vector<K>& ks) {
+  auto a = createContainer(x, K());
+  decompressKeyContainerW(a, x, vs, ks);
+  return a;
+}
+template <class G, class K>
+inline auto decompressKeyContainer(const G& x, const vector<K>& vs) {
+  return decompressKeyContainer(x, vs, vertexKeys(x));
+}
+
+
 
 
 // COMPRESS-CONTAINER
@@ -119,6 +143,29 @@ inline auto compressContainer(const G& x, const vector<T>& vs, const J& ks) {
 template <class G, class T>
 inline auto compressContainer(const G& x, const vector<T>& vs) {
   return compressContainer(x, vs, x.vertexKeys());
+}
+
+
+template <class G, class K, class J>
+inline void compressKeyContainerW(vector<K>& a, const G& x, const vector<K>& vs, const J& ks) {
+  auto m  = valueIndicesUnorderedMap(ks);
+  auto fm = [&](auto k) { return m[k]; };
+  gatherValuesW(a, vs, ks, fm);
+}
+template <class G, class K>
+inline void compressKeyContainerW(vector<K>& a, const G& x, const vector<K>& vs) {
+  return compressKeyContainerW(a, x, vs, x.vertexKeys());
+}
+
+template <class G, class K, class J>
+inline auto compressKeyContainer(const G& x, const vector<K>& vs, const J& ks) {
+  auto a = createCompressedContainer(x, K());
+  compressKeyContainerW(a, x, vs, ks);
+  return a;
+}
+template <class G, class K>
+inline auto compressKeyContainer(const G& x, const vector<K>& vs) {
+  return compressKeyContainer(x, vs, x.vertexKeys());
 }
 
 
