@@ -1,7 +1,5 @@
-Comparing naive dynamic approaches of the Louvain algorithm for community
-detection.
-
-`TODO`
+Effect of adjusting start tolerance and tolerance-norm of the
+[Louvain algorithm] for [community detection].
 
 [Louvain] is an algorithm for **detecting communities in graphs**. *Community*
 *detection* helps us understand the *natural divisions in a network* in an
@@ -54,55 +52,42 @@ thing does not apply for `tolerance`. Adjusting values of `tolerance` between
 each pass have been observed to impact the runtime of the algorithm, without
 significantly affecting the modularity of obtained communities.
 
-In this experiment, we compare the performance of *two different types* of **naive**
-**dynamic Louvain** with respect to the *static* version. The **last** approach
-(`louvainSeqDynamicLast`) considers the community membership of each vertex
-*after* the Louvain algorithm has *converged* (community membership from the "last"
-pass) and then performs the Louvain algorithm upon the new (updated) graph. This
-is *similar* to naive dynamic approaches with other algorithms. On the other hand,
-the **first** approach (`louvainSeqDynamicFirst`) considers the community
-membership of each vertex right after the *first pass* of the Louvain algorithm
-(this is the first community membership hierarchy) and then performs the Louvain
-algorithm upon the updated graph. With this approach, we allow the affected
-vertices to choose their community membership from the first pass itself, which
-which to my intuition would lead to better communities.
+In this experiment we change the initial value of `tolerance` (for local-moving
+phase) from `1e-00` to `1e-6` in steps of `10`. For each initial value of
+`tolerance`, we use a tolerance-norm of `L1`, `L2`, or `L∞`. We compare the
+results, both in terms of quality (modularity) of communities obtained, and
+performance. We choose the remaining Louvain *parameters* as `resolution = 1.0`,
+`toleranceDeclineFactor = 10` (the rate at which we recude tolerance after every
+pass), and `passTolerance = 0.0`. In addition we limit the maximum number of
+iterations in a single local-moving phase with `maxIterations = 500`, and limit
+the maximum number of passes with `maxPasses = 500`. We run the Louvain
+algorithm until convergence (or until the maximum limits are exceeded), and
+measure the **time taken** for the *computation* (performed 5 times for
+averaging), the **modularity score**, the **total number of iterations** (in the
+*local-moving* *phase*), and the number of **passes**. This is repeated for
+*seventeen* different graphs.
 
-First, we compute the community membership of each vertex using the static
-Louvain algorithm (`louvainSeqLast`). We also run the static Louvain algorithm
-for only one pass (`louvainSeqFirst`). We then generate *batches* of *insertions*
-*(+)* and *deletions (-)* of edges of sizes 500, 1000, 5000, ... 100000. For each
-batch size, we generate *five* different batches for the purpose of *averaging*.
-Each batch of edges (insertion / deletion) is generated randomly such that the
-selection of each vertex (as endpoint) is *equally probable*. We choose the
-Louvain *parameters* as `resolution = 1.0`, `tolerance = 1e-2` (for local-moving
-phase) with *tolerance* decreasing after every pass by a factor of
-`toleranceDeclineFactor = 10`, and a `passTolerance = 0.0` (when passes stop).
-In addition we limit the maximum number of iterations in a single local-moving
-phase with `maxIterations = 500`, and limit the maximum number of passes with
-`maxPasses = 500`. We run the Louvain algorithm until convergence (or until the
-maximum limits are exceeded), and measure the **time** **taken** for the
-*computation* (performed 5 times for averaging), the **modularity score**, the
-**total number of iterations** (in the *local-moving* *phase*), and the number
-of **passes**. This is repeated for *seventeen* different graphs.
-
-From the results, we make make the following observations. The performance of
-dynamic approaches upon a batch of deletions appears to *increase* with *increasing*
-batch size*. This makes sense since, as the graph keeps getting smaller, the
-computation would complete *sooner*. Next, the `first` naive dynamic approach is
-found to be *significantly slower* (~0.3x speedup) than the `last` approach.
-However, the `first` approach is *still faster* than the static approach upto a
-batch size of `50000`. On the other hand, the `last` approach is *faster* than the
-static approach for all batch sizes. A similar behavior is observed with the
-total number of iterations. The `first` approach seems to have a *slightly higher*
-modularity with respect to the `last` approach. Since the modularity between the
-two dynamic approaches are almost the same, the **last** approach is clearly the
-**best choice**.
+From the results, we make the following observations. A tolerance-norm of `L1`
+converges the fastest, followed by `L∞`, and then `L2` (except for initial
+`tolerance` below `10^-2`). This could be due to delta-modularity for any vertex
+being small, so that squiring it (as with `L2-norm`) reduces the net error
+significantly. In general we observe that the modularity obtained with all
+tolerance-norms is the same, but for some graphs, best modularity is achieved
+with an initial `tolerance` of `10^-5` with `L∞-norm`, and an initial tolerance
+of `> 10^-6` with `L2-norm`. As `L∞-norm` considers only the max error, we
+believe it would be a suitable tolerance-norm of choice for dynamic Louvain
+algorithm. Hence, we ask you to consider an **initial tolerance of 10^-5 with**
+**L∞-norm** to be the **suitable choice** in the general case.
 
 All outputs are saved in a [gist] and a small part of the output is listed here.
 Some [charts] are also included below, generated from [sheets]. The input data
 used for this experiment is available from the [SuiteSparse Matrix Collection].
 This experiment was done with guidance from [Prof. Kishore Kothapalli] and
 [Prof. Dip Sankar Banerjee].
+
+
+[Louvain algorithm]: https://en.wikipedia.org/wiki/Louvain_method
+[community detection]: https://en.wikipedia.org/wiki/Community_search
 
 <br>
 
@@ -138,10 +123,10 @@ $ ...
 # ...
 ```
 
-[![](https://i.imgur.com/HJAS3Di.png)][sheetp]
-[![](https://i.imgur.com/4iQ7CzY.png)][sheetp]
-[![](https://i.imgur.com/E9nDrAI.png)][sheetp]
-[![](https://i.imgur.com/BZGF6Yt.png)][sheetp]
+[![](https://i.imgur.com/MZVDsqq.png)][sheetp]
+[![](https://i.imgur.com/IhJqxZG.png)][sheetp]
+[![](https://i.imgur.com/bgDmlVZ.png)][sheetp]
+[![](https://i.imgur.com/DKhTOB1.png)][sheetp]
 
 <br>
 <br>
@@ -159,16 +144,15 @@ $ ...
 <br>
 <br>
 
-[![](https://i.imgur.com/9HITKSz.jpg)](https://www.youtube.com/watch?v=wCUV6N4Qtew&t=447s)<br>
+[![](https://i.imgur.com/9HITKSz.jpg)](https://www.youtube.com/watch?v=wCUV6N4Qtew)<br>
 [![ORG](https://img.shields.io/badge/org-puzzlef-green?logo=Org)](https://puzzlef.github.io)
-[![DOI](https://zenodo.org/badge/519984922.svg)](https://zenodo.org/badge/latestdoi/519984922)
 
 
 [Prof. Dip Sankar Banerjee]: https://sites.google.com/site/dipsankarban/
 [Prof. Kishore Kothapalli]: https://faculty.iiit.ac.in/~kkishore/
 [SuiteSparse Matrix Collection]: https://sparse.tamu.edu
 [Louvain]: https://en.wikipedia.org/wiki/Louvain_method
-[gist]: https://gist.github.com/wolfram77/9c1bff3cc327acd80c9e2479ef7c4e57
-[charts]: https://imgur.com/a/3vhRU3c
-[sheets]: https://docs.google.com/spreadsheets/d/189GRfvpTxSMWLrqafHMvHyV7ddaXFZQ0u056MfnO2uU/edit?usp=sharing
-[sheetp]: https://docs.google.com/spreadsheets/d/e/2PACX-1vRrGpRtzagVZCmtPuIUaD03I8SGY2PEZGusNV90ojCgntRbiEg0r8wCp-YiT8A7e8ZqzqQqAJveqGOD/pubhtml
+[gist]: https://gist.github.com/wolfram77/b2ac8e73457b2be74716707b8e56bbd6
+[charts]: https://imgur.com/a/LNCHoD5
+[sheets]: https://docs.google.com/spreadsheets/d/1HG88om3r0z77BZUQaDsYaQtlH0TYEO1GCFOvfCEGNb4/edit?usp=sharing
+[sheetp]: https://docs.google.com/spreadsheets/d/e/2PACX-1vREObOkBKZhuBSLUq90YPwIAHEuAXWac3_MIhfu_X5zXH5AJ8oP552Dhwx7dITBHmUUK-W8OEkQTklb/pubhtml
