@@ -1,5 +1,5 @@
-Comparison of ordered vs unordered vertex processing in Louvain algorithm for
-community detection.
+Comparison of ordered vs unordered vertex processing in [Louvain algorithm] for
+[community detection].
 
 [Louvain] is an algorithm for **detecting communities in graphs**. *Community*
   *detection* helps us understand the *natural divisions in a network* in an
@@ -69,17 +69,12 @@ From the results, we observe that **both** the *ordered* and the *unordered*
 vertex processing approaches of the Louvain algorithm are able to provide
 communities **of equivalent quality** in terms of **modularity**, with the
 *ordered approach* providing *slightly higher quality communities* for certain
-graphs. However, there is a *significant performance gap* between the *ordered*
-and the *unordered* approaches. The **unordered approach** is **orders of**
-**magnitude slower** than the *ordered approach* in terms of the **total time**
-**taken**, as well as the **total number of iterations** of the *local-moving*
-*phase* (which is the *most expensive part* of the algorithm). We also observe
-that the unordered algorithm requires **more number of passes** for convergence.
-Choosing *non-zero tolerances* for the algorithm will likely *reduce* this
-significant gap between the two approaches, but the **ordered approach is**
-**clearly superior** to the unordered approach. We therefore conclude that
-**partially ordered approaches** for vertex processing are **likely to provide**
-**good performance improvements** over fully unordered approaches **for parallel**
+graphs. However, the **unordered approach** is **quite a bit slower** than the
+*ordered approach* in terms of the **total time taken**, as well as the **total**
+**number of iterations** of the *local-moving phase* (which is the *most*
+*expensive part* of the algorithm). We therefore conclude that **partially**
+**ordered approaches** for vertex processing are **likely to provide good**
+**performance improvements** over fully unordered approaches **for parallel**
 **implementations** of the Louvain algorithm. *Vertex ordering* via *graph*
 *coloring* has been explored by Halappanavar et al.
 
@@ -88,6 +83,10 @@ Some [charts] are also included below, generated from [sheets]. The input data
 used for this experiment is available from the [SuiteSparse Matrix Collection].
 This experiment was done with guidance from [Prof. Kishore Kothapalli] and
 [Prof. Dip Sankar Banerjee].
+
+
+[Louvain algorithm]: https://en.wikipedia.org/wiki/Louvain_method
+[community detection]: https://en.wikipedia.org/wiki/Community_search
 
 <br>
 
@@ -101,22 +100,23 @@ $ ...
 # order: 281903 size: 2312497 [directed] {}
 # order: 281903 size: 3985272 [directed] {} (symmetricize)
 # [-0.000497 modularity] noop
-# [09929.730 ms; 0287 iters.; 009 passes; 0.923316 modularity] louvainSeqOrdered
-# [29279.896 ms; 6003 iters.; 014 passes; 0.924421 modularity] louvainSeqUnordered
+# [00612.142 ms; 0025 iters.; 009 passes; 0.923383 modularity] louvainSeqOrdered
+# [01021.339 ms; 0053 iters.; 013 passes; 0.924812 modularity] louvainSeqUnordered
 #
 # Loading graph /home/subhajit/data/web-BerkStan.mtx ...
 # order: 685230 size: 7600595 [directed] {}
 # order: 685230 size: 13298940 [directed] {} (symmetricize)
 # [-0.000316 modularity] noop
-# [13976.750 ms; 0404 iters.; 009 passes; 0.935729 modularity] louvainSeqOrdered
-# [49975.512 ms; 5503 iters.; 013 passes; 0.937115 modularity] louvainSeqUnordered
+# [01152.747 ms; 0028 iters.; 009 passes; 0.935839 modularity] louvainSeqOrdered
+# [02297.683 ms; 0252 iters.; 010 passes; 0.934896 modularity] louvainSeqUnordered
+#
 # ...
 ```
 
-[![](https://i.imgur.com/17Y4dSG.png)][sheetp]
-[![](https://i.imgur.com/8Gr6Jxg.png)][sheetp]
-[![](https://i.imgur.com/8GJl7pp.png)][sheetp]
-[![](https://i.imgur.com/IRlfApi.png)][sheetp]
+[![](https://i.imgur.com/hyodWWi.png)][sheetp]
+[![](https://i.imgur.com/8Ohz4fC.png)][sheetp]
+[![](https://i.imgur.com/VrQZ0VF.png)][sheetp]
+[![](https://i.imgur.com/1I1vATC.png)][sheetp]
 
 <br>
 <br>
@@ -144,6 +144,6 @@ $ ...
 [SuiteSparse Matrix Collection]: https://sparse.tamu.edu
 [Louvain]: https://en.wikipedia.org/wiki/Louvain_method
 [gist]: https://gist.github.com/wolfram77/20646e8a76711fdac463eabc92a306ff
-[charts]: https://imgur.com/a/DJVI4SV
+[charts]: https://imgur.com/a/w8RUjZX
 [sheets]: https://docs.google.com/spreadsheets/d/1s9d2NGOrQT9_0uixIBKoTSSlERcr2PTVxJlhaWZ0st4/edit?usp=sharing
 [sheetp]: https://docs.google.com/spreadsheets/d/e/2PACX-1vQ9L0XHRdEJpkWvWpWCxPr8M7CajTfSIXS_Q2-NAVpGYR-Rr83QDu3ZON88Y32yVGCF1iwo14RniOsm/pubhtml
