@@ -166,12 +166,11 @@ int louvainMove(vector<K>& vdom, vector<K>& vcom, vector<V>& dtot, vector<V>& ct
     if (!O) copyValues(vcom, vdom);
     if (!O) copyValues(ctot, dtot);
     x.forEachVertexKey([&](auto u) {
+      K d = vdom[u];
       louvainClearScan(vcs, vcout);
       louvainScanCommunities(vcs, vcout, x, u, vdom);
       auto [c, e] = louvainChooseCommunity(x, u, vdom, vtot, dtot, vcs, vcout, M, R);
-      if (O) { if (c)              louvainChangeCommunity(vcom, ctot, x, u, c, vdom, vtot); }
-      else   { if (c && c<vdom[u]) louvainChangeCommunity(vcom, ctot, x, u, c, vdom, vtot); }
-      el += e;   // l1-norm
+      if (c && (O || c<d)) { louvainChangeCommunity(vcom, ctot, x, u, c, vdom, vtot); el += e; }  // l1-norm
     }); ++l;
     if (el<=E) break;
   }
