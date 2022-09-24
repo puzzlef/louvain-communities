@@ -5,7 +5,7 @@ const path = require('path');
 const RGRAPH = /^Loading graph .*\/(.*?)\.mtx \.\.\./m;
 const RORDER = /^order: (\d+) size: (\d+) (?:\[\w+\] )?\{\} \(symmetricize\)/m;
 const RORGNL = /^\[(\S+?) modularity\] noop/;
-const RRESLT = /^\[(\S+?) batch_size; (\d+) batch_count; (\S+?) ms; (\d+) iters\.; (\d+) passes; (\S+?) modularity\] (\w+)/m;
+const RRESLT = /^\[(\S+?) ms; (\d+) iters\.; (\d+) passes; (\S+?) modularity\] (\w+)(?:\s+\{tolerance: (.+?)\})?/m;
 
 
 
@@ -57,25 +57,23 @@ function readLogLine(ln, data, state) {
   else if (RORGNL.test(ln)) {
     var [, modularity] = RORGNL.exec(ln);
     data.get(state.graph).push(Object.assign({}, state, {
-      batch_size:  0,
-      batch_count: 0,
       time:        0,
       iterations:  0,
       passes:      0,
       modularity:  parseFloat(modularity),
       technique:   'noop',
+      tolerance:   0,
     }));
   }
   else if (RRESLT.test(ln)) {
-    var [, batch_size, batch_count, time, iterations, passes, modularity, technique] = RRESLT.exec(ln);
+    var [, time, iterations, passes, modularity, technique, tolerance] = RRESLT.exec(ln);
     data.get(state.graph).push(Object.assign({}, state, {
-      batch_size:  parseFloat(batch_size),
-      batch_count: parseFloat(batch_count),
       time:        parseFloat(time),
       iterations:  parseFloat(iterations),
       passes:      parseFloat(passes),
       modularity:  parseFloat(modularity),
       technique,
+      tolerance:   parseFloat(tolerance),
     }));
   }
   return state;
