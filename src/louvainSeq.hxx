@@ -26,22 +26,8 @@ auto louvainSeq(const G& x, const vector<K>* q, const LouvainOptions<V>& o, FA f
   int P = o.maxPasses, p = 0;
   K   S = x.span();
   V   M = edgeWeight(x)/2;
-  int lM = 0;
-  V Q = V(), Qsum = V(), Qgpu = V(), QsumGpu = V();
   vector<K> vcom(S), vcs, a(S);
   vector<V> vtot(S), ctot(S), vcout(S);
-  // Run louvainMove() once.
-  float tM = measureDurationMarked([&](auto mark) {
-    fillValueU(vcom, K());
-    fillValueU(vtot, V());
-    fillValueU(ctot, V());
-    louvainVertexWeights(vtot, x);
-    louvainInitialize(vcom, ctot, x, vtot);
-    if (q) copyValues(*q, vcom, 0, min((*q).size(), vcom.size()));
-    if (q) louvainCommunityWeights(ctot, x, vcom, vtot);
-    mark([&]() { lM = louvainMove(vcom, ctot, vcs, vcout, x, vtot, M, R, o.tolerance, L, fa, fp); });
-  }, o.repeat);
-  // Run the remaining steps.
   float t = measureDurationMarked([&](auto mark) {
     V E  = o.tolerance;
     V Q0 = modularity(x, M, R);
@@ -60,8 +46,7 @@ auto louvainSeq(const G& x, const vector<K>* q, const LouvainOptions<V>& o, FA f
         else      l += louvainMove(vcom, ctot, vcs, vcout, y, vtot, M, R, E, L);
         y  = louvainAggregate(vcs, vcout, y, vcom); ++p;
         louvainLookupCommunities(a, vcom);
-        Q  = modularity(y, M, R);
-        if (p==1) Qgpu = Q;
+        V Q = modularity(y, M, R);
         if (Q-Q0<=D) break;
         fillValueU(vcom, K());
         fillValueU(vtot, V());
@@ -71,11 +56,9 @@ auto louvainSeq(const G& x, const vector<K>* q, const LouvainOptions<V>& o, FA f
         E /= o.tolerenceDeclineFactor;
         Q0 = Q;
       }
-      Qsum    += Q;
-      QsumGpu += Qgpu;
     });
   }, o.repeat);
-  return LouvainResult<K>(a, l, p, t, Qsum/o.repeat, lM, tM, QsumGpu/o.repeat);
+  return LouvainResult<K>(a, l, p, t);
 }
 template <class G, class K, class V, class FA>
 inline auto louvainSeq(const G& x, const vector<K>* q, const LouvainOptions<V>& o, FA fa) {

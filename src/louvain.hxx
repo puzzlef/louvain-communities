@@ -22,8 +22,6 @@ using std::make_pair;
 template <class T>
 struct LouvainOptions {
   int repeat;
-  int accumulatorCapacity;
-  int accumulatorSecondary;
   T   resolution;
   T   tolerance;
   T   passTolerance;
@@ -31,8 +29,8 @@ struct LouvainOptions {
   int maxIterations;
   int maxPasses;
 
-  LouvainOptions(int repeat=1, int accumulatorCapacity=127, int accumulatorSecondary=253, T resolution=1, T tolerance=1e-2, T passTolerance=0, T tolerenceDeclineFactor=10, int maxIterations=500, int maxPasses=500) :
-  repeat(repeat), accumulatorCapacity(accumulatorCapacity), accumulatorSecondary(accumulatorSecondary), resolution(resolution), tolerance(tolerance), passTolerance(passTolerance), tolerenceDeclineFactor(tolerenceDeclineFactor), maxIterations(maxIterations), maxPasses(maxPasses) {}
+  LouvainOptions(int repeat=1, T resolution=1, T tolerance=1e-2, T passTolerance=0, T tolerenceDeclineFactor=10, int maxIterations=500, int maxPasses=500) :
+  repeat(repeat), resolution(resolution), tolerance(tolerance), passTolerance(passTolerance), tolerenceDeclineFactor(tolerenceDeclineFactor), maxIterations(maxIterations), maxPasses(maxPasses) {}
 };
 
 
@@ -47,16 +45,12 @@ struct LouvainResult {
   int   iterations;
   int   passes;
   float time;
-  float modularity;
-  int   iterationsGpu;
-  float timeGpu;
-  float modularityGpu;
 
-  LouvainResult(vector<K>&& membership, int iterations=0, int passes=0, float time=0, float modularity=0, int iterationsGpu=0, float timeGpu=0, float modularityGpu=0) :
-  membership(membership), iterations(iterations), passes(passes), time(time), modularity(modularity), iterationsGpu(iterationsGpu), timeGpu(timeGpu), modularityGpu(modularityGpu) {}
+  LouvainResult(vector<K>&& membership, int iterations=0, int passes=0, float time=0) :
+  membership(membership), iterations(iterations), passes(passes), time(time) {}
 
-  LouvainResult(vector<K>& membership, int iterations=0, int passes=0, float time=0, float modularity=0, int iterationsGpu=0, float timeGpu=0, float modularityGpu=0) :
-  membership(move(membership)), iterations(iterations), passes(passes), time(time), modularity(modularity), iterationsGpu(iterationsGpu), timeGpu(timeGpu), modularityGpu(modularityGpu) {}
+  LouvainResult(vector<K>& membership, int iterations=0, int passes=0, float time=0) :
+  membership(move(membership)), iterations(iterations), passes(passes), time(time) {}
 };
 
 
