@@ -242,12 +242,12 @@ V louvainMoveFirst(vector<K>& vcom, vector<V>& ctot, const G& x, const vector<V>
 template <class G, class K, class V, class FA>
 inline V louvainMoveFirst(vector<K>& vcom, vector<V>& ctot, const G& x, const vector<V>& vtot, V M, V R, FA fa) {
   auto fp = [](auto u) {};
-  return louvainMoveFirst(vcom, ctot, vcs, vcout, x, vtot, M, R, E, L, fa, fp);
+  return louvainMoveFirst(vcom, ctot, x, vtot, M, R, fa, fp);
 }
 template <class G, class K, class V>
 inline V louvainMoveFirst(vector<K>& vcom, vector<V>& ctot, const G& x, const vector<V>& vtot, V M, V R) {
   auto fa = [](auto u) { return true; };
-  return louvainMoveFirst(vcom, ctot, vcs, vcout, x, vtot, M, R, E, L, fa);
+  return louvainMoveFirst(vcom, ctot, x, vtot, M, R, fa);
 }
 
 

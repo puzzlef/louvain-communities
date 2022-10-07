@@ -42,15 +42,17 @@ auto louvainSeq(const G& x, const vector<K>* q, const LouvainOptions<V>& o, FA f
       if (q) louvainCommunityWeights(ctot, y, vcom, vtot);
       copyValues(vcom, a);
       for (l=0, p=0; p<P;) {
-        if (p==0) l += louvainMove<FIR>(vcom, ctot, vcs, vcout, y, vtot, M, R, E, L, fa, fp);
-        else      l += louvainMove<FIR>(vcom, ctot, vcs, vcout, y, vtot, M, R, E, L);
-        if (D==0 && l<=1) break;
+        int m = 0;
+        if (p==0) m += louvainMove<FIR>(vcom, ctot, vcs, vcout, y, vtot, M, R, E, L, fa, fp);
+        else      m += louvainMove<FIR>(vcom, ctot, vcs, vcout, y, vtot, M, R, E, L);
+        l += m;
+        if (m<=1) break;
         // K N0 = y.order();
         y = louvainAggregate(vcs, vcout, y, vcom); ++p;
         // K N1 = y.order();
         // if (N1==N0) break;
         louvainLookupCommunities(a, vcom);
-        V Q = D>0? modularity(y, M, R) : Q + V(1);
+        V Q = D>0? modularity(y, M, R) : Q0 + V(1);
         if (Q-Q0<=D) break;
         fillValueU(vcom, K());
         fillValueU(vtot, V());
