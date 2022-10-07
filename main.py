@@ -1,7 +1,7 @@
-# https://www.kaggle.com/wolfram77/puzzlef-louvain-ordered-vs-unordered
+# https://www.kaggle.com/wolfram77/puzzlef-louvain-simple-first-move
 import os
 from IPython.display import FileLink
-src="louvain-ordered-vs-unordered"
+src="louvain-simple-first-move"
 inp="/kaggle/input/graphs"
 out="{}.txt".format(src)
 !printf "" > "$out"
