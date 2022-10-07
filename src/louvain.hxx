@@ -219,7 +219,6 @@ void louvainChangeCommunity(vector<K>& vcom, vector<V>& ctot, const G& x, K u, K
  */
 template <class G, class K, class V, class FA, class FP>
 V louvainMoveFirst(vector<K>& vcom, vector<V>& ctot, const G& x, const vector<V>& vtot, V M, V R, FA fa, FP fp) {
-  K S  = x.span();
   V el = V();
   x.forEachVertexKey([&](auto u) {
     if (!fa(u)) return;
@@ -230,10 +229,8 @@ V louvainMoveFirst(vector<K>& vcom, vector<V>& ctot, const G& x, const vector<V>
       if (u==v)   { vdout = w; return; }
       if (w>wmax) { vmax  = v; wmax = w; }
     });
-    K d = vcom[u];
-    K c = vcom[vmax];
+    K d = u, c = vmax; V vcout = wmax;
     if (wmax==0 || ctot[d]>vtot[u]) return;
-    V vcout = wmax;
     V e     = deltaModularity(vcout, vdout, vtot[u], ctot[c], ctot[d], M, R);
     if (e>0) { louvainChangeCommunity(vcom, ctot, x, u, c, vtot); fp(u); el += e; }
   });
@@ -269,12 +266,14 @@ inline V louvainMoveFirst(vector<K>& vcom, vector<V>& ctot, const G& x, const ve
  */
 template <bool FIR=false, class G, class K, class V, class FA, class FP>
 int louvainMove(vector<K>& vcom, vector<V>& ctot, vector<K>& vcs, vector<V>& vcout, const G& x, const vector<V>& vtot, V M, V R, V E, int L, FA fa, FP fp) {
-  K S = x.span();
   int l = 0;
+  if (FIR && l<L) {
+    V   el = louvainMoveFirst(vcom, ctot, x, vtot, M, R, fa, fp); ++l;
+    if (el==V()) return l;
+  }
   for (; l<L;) {
     V el = V();
-    if (FIR && l==0) el = louvainMoveFirst(vcom, ctot, x, vtot, M, R, fa, fp);
-    else x.forEachVertexKey([&](auto u) {
+    x.forEachVertexKey([&](auto u) {
       if (!fa(u)) return;
       louvainClearScan(vcs, vcout);
       louvainScanCommunities(vcs, vcout, x, u, vcom);
