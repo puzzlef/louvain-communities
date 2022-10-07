@@ -10,26 +10,37 @@ using namespace std;
 
 
 
+// You can define datatype with -DTYPE=...
+#ifndef TYPE
+#define TYPE float
+#endif
+
+
+
+
+template <class G, class K, class V>
+double getModularity(const G& x, const LouvainResult<K>& a, V M) {
+  auto fc = [&](auto u) { return a.membership[u]; };
+  return modularity(x, fc, M, V(1));
+}
+
+
 template <class G>
 void runLouvain(const G& x, int repeat) {
   using K = typename G::key_type;
+  using V = typename G::edge_value_type;
+  vector<K> *init = nullptr;
+  V resolution = V(1);
+  V tolerance  = V(1e-2);
+  V passTolerance = V(0);
+  V toleranceDeclineFactor = V(10);
   auto M = edgeWeight(x)/2;
   auto Q = modularity(x, M, 1.0f);
   printf("[%01.6f modularity] noop\n", Q);
 
-  // Run louvain algorithm.
-  do {
-    LouvainResult<K> a = louvainSeq<true>(x, {repeat});
-    auto fc = [&](auto u) { return a.membership[u]; };
-    auto Q  = modularity(x, fc, M, 1.0f);
-    printf("[%09.3f ms; %04d iters.; %03d passes; %01.6f modularity] louvainSeqOrdered\n", a.time, a.iterations, a.passes, Q);
-  } while(0);
-  do {
-    LouvainResult<K> a = louvainSeq<false>(x, {repeat});
-    auto fc = [&](auto u) { return a.membership[u]; };
-    auto Q  = modularity(x, fc, M, 1.0f);
-    printf("[%09.3f ms; %04d iters.; %03d passes; %01.6f modularity] louvainSeqUnordered\n", a.time, a.iterations, a.passes, Q);
-  } while(0);
+  // Run louvain algorithm (static).
+  LouvainResult<K> al = louvainSeqStatic(x, init, {repeat, resolution, tolerance, passTolerance, toleranceDeclineFactor});
+  printf("[%09.3f ms; %04d iters.; %03d passes; %01.9f modularity] louvainSeqStatic\n", al.time, al.iterations, al.passes, getModularity(x, al, M));
 }
 
 
@@ -38,11 +49,11 @@ int main(int argc, char **argv) {
   using V = float;
   char *file = argv[1];
   int repeat = argc>2? stoi(argv[2]) : 5;
-  OutDiGraph<K, None, V> x; V w = 1;
+  OutDiGraph<K, None, V> x;  // V w = 1;
   printf("Loading graph %s ...\n", file);
   readMtxW(x, file); println(x);
   auto y  = symmetricize(x); print(y); printf(" (symmetricize)\n");
-  auto fl = [](auto u) { return true; };
+  // auto fl = [](auto u) { return true; };
   // selfLoopU(y, w, fl); print(y); printf(" (selfLoopAllVertices)\n");
   runLouvain(y, repeat);
   printf("\n");
