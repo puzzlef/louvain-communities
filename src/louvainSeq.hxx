@@ -26,7 +26,7 @@ auto louvainSeq(const G& x, const vector<K>* q, const LouvainOptions<V>& o, FA f
   int P = o.maxPasses, p = 0;
   K   S = x.span();
   V   M = edgeWeight(x)/2;
-  vector<K> vcom(S), vcs, a(S);
+  vector<K> vmov(S), vcom(S), vcs, a(S);
   vector<V> vtot(S), ctot(S), vcout(S);
   float t = measureDurationMarked([&](auto mark) {
     V E  = o.tolerance;
@@ -43,8 +43,8 @@ auto louvainSeq(const G& x, const vector<K>* q, const LouvainOptions<V>& o, FA f
       copyValues(vcom, a);
       for (l=0, p=0; p<P;) {
         int m = 0;
-        if (p==0) m += louvainMove<FIR>(vcom, ctot, vcs, vcout, y, vtot, M, R, E, L, fa, fp);
-        else      m += louvainMove<FIR>(vcom, ctot, vcs, vcout, y, vtot, M, R, E, L);
+        if (p==0) m += louvainMove<FIR>(vmov, vcom, ctot, vcs, vcout, y, vtot, M, R, E, L, fa, fp);
+        else      m += louvainMove     (vmov, vcom, ctot, vcs, vcout, y, vtot, M, R, E, L);
         l += m;
         if (m<=1) break;
         // K N0 = y.order();

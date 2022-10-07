@@ -207,6 +207,7 @@ void louvainChangeCommunity(vector<K>& vcom, vector<V>& ctot, const G& x, K u, K
 
 /**
  * Simple weight-based community choice for first iteration for local-moving phase of Louvain algorithm.
+ * @param vmov community each vertex plans to move to (scratch, updated)
  * @param vcom community each vertex belongs to (initial, updated)
  * @param ctot total edge weight of each community (precalculated, updated)
  * @param x original graph
@@ -218,38 +219,31 @@ void louvainChangeCommunity(vector<K>& vcom, vector<V>& ctot, const G& x, K u, K
  * @returns iterations performed
  */
 template <class G, class K, class V, class FA, class FP>
-V louvainMoveFirst(vector<K>& vcom, vector<V>& ctot, const G& x, const vector<V>& vtot, V M, V R, FA fa, FP fp) {
+V louvainMoveFirst(vector<K>& vmov, vector<K>& vcom, vector<V>& ctot, const G& x, const vector<V>& vtot, V M, V R, FA fa, FP fp) {
   V el = V();
   x.forEachVertexKey([&](auto u) {
     if (!fa(u)) return;
-    K vmax  = K();
-    V wmax  = V();
-    V vdout = V();
+    K cmax = K();
+    V emax = V();
     x.forEachEdge(u, [&](auto v, auto w) {
-      if (u==v)   { vdout = w; return; }
-      if (w>wmax) { vmax  = v; wmax = w; }
+      if (u==v) return;
+      V e = deltaModularity(w, V(), vtot[u], ctot[v], ctot[u], M, R);
+      if (e>emax) { emax = e; cmax = v; }
     });
-    K d = u, c = vmax; V vcout = wmax;
-    if (wmax==0 || ctot[d]>vtot[u]) return;
-    V e     = deltaModularity(vcout, vdout, vtot[u], ctot[c], ctot[d], M, R);
-    if (e>0) { louvainChangeCommunity(vcom, ctot, x, u, c, vtot); fp(u); el += e; }
+    vmov[u] = K();
+    if (cmax) { vmov[u] = cmax; el += emax; }
+  });
+  x.forEachVertexKey([&](auto u) {
+    if (!vmov[u]) return;
+    louvainChangeCommunity(vcom, ctot, x, u, vmov[u], vtot); fp(u);
   });
   return el;
-}
-template <class G, class K, class V, class FA>
-inline V louvainMoveFirst(vector<K>& vcom, vector<V>& ctot, const G& x, const vector<V>& vtot, V M, V R, FA fa) {
-  auto fp = [](auto u) {};
-  return louvainMoveFirst(vcom, ctot, x, vtot, M, R, fa, fp);
-}
-template <class G, class K, class V>
-inline V louvainMoveFirst(vector<K>& vcom, vector<V>& ctot, const G& x, const vector<V>& vtot, V M, V R) {
-  auto fa = [](auto u) { return true; };
-  return louvainMoveFirst(vcom, ctot, x, vtot, M, R, fa);
 }
 
 
 /**
  * Louvain algorithm's local moving phase.
+ * @param vmov community each vertex plans to move to (scratch, updated)
  * @param vcom community each vertex belongs to (initial, updated)
  * @param ctot total edge weight of each community (precalculated, updated)
  * @param vcs communities vertex u is linked to (temporary buffer, updated)
@@ -265,10 +259,10 @@ inline V louvainMoveFirst(vector<K>& vcom, vector<V>& ctot, const G& x, const ve
  * @returns iterations performed
  */
 template <bool FIR=false, class G, class K, class V, class FA, class FP>
-int louvainMove(vector<K>& vcom, vector<V>& ctot, vector<K>& vcs, vector<V>& vcout, const G& x, const vector<V>& vtot, V M, V R, V E, int L, FA fa, FP fp) {
+int louvainMove(vector<K>& vmov, vector<K>& vcom, vector<V>& ctot, vector<K>& vcs, vector<V>& vcout, const G& x, const vector<V>& vtot, V M, V R, V E, int L, FA fa, FP fp) {
   int l = 0;
   if (FIR && l<L) {
-    V   el = louvainMoveFirst(vcom, ctot, x, vtot, M, R, fa, fp); ++l;
+    V   el = louvainMoveFirst(vmov, vcom, ctot, x, vtot, M, R, fa, fp); ++l;
     if (el==V()) return l;
   }
   for (; l<L;) {
@@ -278,22 +272,21 @@ int louvainMove(vector<K>& vcom, vector<V>& ctot, vector<K>& vcs, vector<V>& vco
       louvainClearScan(vcs, vcout);
       louvainScanCommunities(vcs, vcout, x, u, vcom);
       auto [c, e] = louvainChooseCommunity(x, u, vcom, vtot, ctot, vcs, vcout, M, R);
-      if (c)      { louvainChangeCommunity(vcom, ctot, x, u, c, vtot); fp(u); }
-      el += e;  // l1-norm
+      if (c)      { louvainChangeCommunity(vcom, ctot, x, u, c, vtot); fp(u); el += e; }  // l1-norm
     }); ++l;
     if (el<=E) break;
   }
   return l;
 }
 template <bool FIR=false, class G, class K, class V, class FA>
-inline int louvainMove(vector<K>& vcom, vector<V>& ctot, vector<K>& vcs, vector<V>& vcout, const G& x, const vector<V>& vtot, V M, V R, V E, int L, FA fa) {
+inline int louvainMove(vector<K>& vmov, vector<K>& vcom, vector<V>& ctot, vector<K>& vcs, vector<V>& vcout, const G& x, const vector<V>& vtot, V M, V R, V E, int L, FA fa) {
   auto fp = [](auto u) {};
-  return louvainMove<FIR>(vcom, ctot, vcs, vcout, x, vtot, M, R, E, L, fa, fp);
+  return louvainMove<FIR>(vmov, vcom, ctot, vcs, vcout, x, vtot, M, R, E, L, fa, fp);
 }
 template <bool FIR=false, class G, class K, class V>
-inline int louvainMove(vector<K>& vcom, vector<V>& ctot, vector<K>& vcs, vector<V>& vcout, const G& x, const vector<V>& vtot, V M, V R, V E, int L) {
+inline int louvainMove(vector<K>& vmov, vector<K>& vcom, vector<V>& ctot, vector<K>& vcs, vector<V>& vcout, const G& x, const vector<V>& vtot, V M, V R, V E, int L) {
   auto fa = [](auto u) { return true; };
-  return louvainMove<FIR>(vcom, ctot, vcs, vcout, x, vtot, M, R, E, L, fa);
+  return louvainMove<FIR>(vmov, vcom, ctot, vcs, vcout, x, vtot, M, R, E, L, fa);
 }
 
 
