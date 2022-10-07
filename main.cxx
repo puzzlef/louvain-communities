@@ -37,10 +37,14 @@ void runLouvain(const G& x, int repeat) {
   auto M = edgeWeight(x)/2;
   auto Q = modularity(x, M, 1.0f);
   printf("[%01.6f modularity] noop\n", Q);
+  LouvainOptions<V> o = {repeat, resolution, tolerance, passTolerance, toleranceDeclineFactor};
 
-  // Run louvain algorithm (static).
-  LouvainResult<K> al = louvainSeqStatic(x, init, {repeat, resolution, tolerance, passTolerance, toleranceDeclineFactor});
-  printf("[%09.3f ms; %04d iters.; %03d passes; %01.9f modularity] louvainSeqStatic\n", al.time, al.iterations, al.passes, getModularity(x, al, M));
+  // Run louvain algorithm (standard).
+  LouvainResult<K> al = louvainSeqStatic(x, init, o);
+  printf("[%09.3f ms; %04d iters.; %03d passes; %01.9f modularity] louvainSeq\n", al.time, al.iterations, al.passes, getModularity(x, al, M));
+  // Run louvain algorithm (simple first move).
+  LouvainResult<K> bl = louvainSeqStatic<true>(x, init, o);
+  printf("[%09.3f ms; %04d iters.; %03d passes; %01.9f modularity] louvainSeqFirst\n", bl.time, bl.iterations, bl.passes, getModularity(x, bl, M));
 }
 
 
