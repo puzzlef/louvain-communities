@@ -22,12 +22,14 @@ T coalesce(T x, T d=T()) {
 // --------
 // For kernel launch calculation.
 
-template <class T>
-T ceilDiv(T x, T y) { return (x + y-1) / y; }
+template <class TX, class TY>
+TX ceilDiv(TX x, TY y) {
+  return (x + y-1) / y;
+}
 template <>
-float ceilDiv<float>(float x, float y) { return ceil(x/y); }
+float ceilDiv<float, float>(float x, float y) { return ceil(x/y); }
 template <>
-double ceilDiv<double>(double x, double y) { return ceil(x/y); }
+double ceilDiv<double, double>(double x, double y) { return ceil(x/y); }
 
 
 

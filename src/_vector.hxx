@@ -209,7 +209,7 @@ void joinAt(const vector2d<T>& xs, const J& is, vector<T>& a) {
     copyAppend(xs[i], a);
 }
 template <class T, class J>
-inline void joinAtW(vector<T>& a, const vector2d<T>& xs, const J& is) {
+inline void joinAtU(vector<T>& a, const vector2d<T>& xs, const J& is) {
   joinAt(xs, is, a);
 }
 
@@ -279,20 +279,37 @@ inline auto joinAt2dVector(const vector2d<T>& xs, const J& ig) {
 // GATHER-VALUES
 // -------------
 
-template <class T, class J, class TA>
-void gatherValues(const T *x, const J& is, TA *a) {
+template <class T, class J, class TA, class FM>
+void gatherValues(const T *x, const J& is, TA *a, FM fm) {
   size_t j = 0;
   for (auto i : is)
-    a[j++] = x[i];
+    a[j++] = fm(x[i]);
+}
+template <class T, class J, class TA>
+void gatherValues(const T *x, const J& is, TA *a) {
+  auto fm = [](auto v) { return v; };
+  gatherValues(x, is, a, fm);
+}
+template <class T, class J, class TA, class FM>
+inline void gatherValues(const vector<T>& x, const J& is, vector<TA>& a, FM fm) {
+  gatherValues(x.data(), is, a.data(), fm);
 }
 template <class T, class J, class TA>
 inline void gatherValues(const vector<T>& x, const J& is, vector<TA>& a) {
   gatherValues(x.data(), is, a.data());
 }
 
+template <class T, class J, class TA, class FM>
+inline void gatherValuesW(TA *a, const T *x, const J& is, FM fm) {
+  gatherValues(x, is, a, fm);
+}
 template <class T, class J, class TA>
 inline void gatherValuesW(TA *a, const T *x, const J& is) {
   gatherValues(x, is, a);
+}
+template <class T, class J, class TA, class FM>
+inline void gatherValuesW(vector<TA>& a, const vector<T>& x, const J& is, FM fm) {
+  gatherValues(x, is, a, fm);
 }
 template <class T, class J, class TA>
 inline void gatherValuesW(vector<TA>& a, const vector<T>& x, const J& is) {
@@ -305,20 +322,37 @@ inline void gatherValuesW(vector<TA>& a, const vector<T>& x, const J& is) {
 // SCATTER-VALUES
 // --------------
 
-template <class T, class J, class TA>
-void scatterValues(const T *x, const J& is, TA *a) {
+template <class T, class J, class TA, class FM>
+void scatterValues(const T *x, const J& is, TA *a, FM fm) {
   size_t j = 0;
   for (auto i : is)
-    a[i] = x[j++];
+    a[i] = fm(x[j++]);
+}
+template <class T, class J, class TA>
+void scatterValues(const T *x, const J& is, TA *a) {
+  auto fm = [](auto v) { return v; };
+  scatterValues(x, is, a, fm);
+}
+template <class T, class J, class TA, class FM>
+inline void scatterValues(const vector<T>& x, const J& is, vector<TA>& a, FM fm) {
+  scatterValues(x.data(), is, a.data(), fm);
 }
 template <class T, class J, class TA>
 inline void scatterValues(const vector<T>& x, const J& is, vector<TA>& a) {
   scatterValues(x.data(), is, a.data());
 }
 
+template <class T, class J, class TA, class FM>
+inline void scatterValuesW(TA *a, const T *x, const J& is, FM fm) {
+  scatterValues(x, is, a, fm);
+}
 template <class T, class J, class TA>
 inline void scatterValuesW(TA *a, const T *x, const J& is) {
   scatterValues(x, is, a);
+}
+template <class T, class J, class TA, class FM>
+inline void scatterValuesW(vector<TA>& a, const vector<T>& x, const J& is, FM fm) {
+  scatterValues(x, is, a, fm);
 }
 template <class T, class J, class TA>
 inline void scatterValuesW(vector<TA>& a, const vector<T>& x, const J& is) {
@@ -754,6 +788,22 @@ inline V l1Norm(const vector<TX>& x, const vector<TY>& y, size_t i, size_t N, V 
 }
 
 
+template <class T, class V=T>
+V l1Norm(const T *x, size_t N, V a=V()) {
+  for (size_t i=0; i<N; i++)
+    a += abs(x[i]);
+  return a;
+}
+template <class T, class V=T>
+inline V l1Norm(const vector<T>& x, V a=V()) {
+  return l1Norm(x.data(), x.size(), a);
+}
+template <class T, class V=T>
+inline V l1Norm(const vector<T>& x, size_t i, size_t N, V a=V()) {
+  return l1Norm(x.data()+i, N, a);
+}
+
+
 
 
 // L2-NORM
@@ -775,6 +825,22 @@ inline V l2Norm(const vector<TX>& x, const vector<TY>& y, size_t i, size_t N, V 
 }
 
 
+template <class T, class V=T>
+V l2Norm(const T *x, size_t N, V a=V()) {
+  for (size_t i=0; i<N; i++)
+    a += x[i] * x[i];
+  return sqrt(a);
+}
+template <class T, class V=T>
+inline V l2Norm(const vector<T>& x, V a=V()) {
+  return l2Norm(x.data(), x.size(), a);
+}
+template <class T, class V=T>
+inline V l2Norm(const vector<T>& x, size_t i, size_t N, V a=V()) {
+  return l2Norm(x.data()+i, N, a);
+}
+
+
 
 
 // LI-NORM (INFINITY)
@@ -793,6 +859,22 @@ inline V liNorm(const vector<TX>& x, const vector<TY>& y, V a=V()) {
 template <class TX, class TY, class V=TX>
 inline V liNorm(const vector<TX>& x, const vector<TY>& y, size_t i, size_t N, V a=V()) {
   return liNorm(x.data()+i, y.data()+i, N, a);
+}
+
+
+template <class T, class V=T>
+V liNorm(const T *x, size_t N, V a=V()) {
+  for (size_t i=0; i<N; i++)
+    a = max(a, abs(x[i]));
+  return a;
+}
+template <class T, class V=T>
+inline V liNorm(const vector<T>& x, V a=V()) {
+  return liNorm(x.data(), x.size(), a);
+}
+template <class T, class V=T>
+inline V liNorm(const vector<T>& x, size_t i, size_t N, V a=V()) {
+  return liNorm(x.data()+i, N, a);
 }
 
 

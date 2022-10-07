@@ -13,5 +13,6 @@
 #include "deadEnds.hxx"
 #include "properties.hxx"
 #include "modularity.hxx"
+#include "random.hxx"
 #include "louvain.hxx"
 #include "louvainSeq.hxx"
