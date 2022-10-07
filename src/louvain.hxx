@@ -206,6 +206,52 @@ void louvainChangeCommunity(vector<K>& vcom, vector<V>& ctot, const G& x, K u, K
 // ------------
 
 /**
+ * Simple weight-based community choice for first iteration for local-moving phase of Louvain algorithm.
+ * @param vcom community each vertex belongs to (initial, updated)
+ * @param ctot total edge weight of each community (precalculated, updated)
+ * @param x original graph
+ * @param vtot total edge weight of each vertex
+ * @param M total weight of "undirected" graph (1/2 of directed graph)
+ * @param R resolution (0, 1]
+ * @param fa is a vertex affected?
+ * @param fp process vertices whose communities have changed
+ * @returns iterations performed
+ */
+template <class G, class K, class V, class FA, class FP>
+V louvainMoveFirst(vector<K>& vcom, vector<V>& ctot, const G& x, const vector<V>& vtot, V M, V R, FA fa, FP fp) {
+  K S  = x.span();
+  V el = V();
+  x.forEachVertexKey([&](auto u) {
+    if (!fa(u)) return;
+    K vmax  = K();
+    V wmax  = V();
+    V vdout = V();
+    x.forEachEdge(u, [&](auto v, auto w) {
+      if (u==v)   { vdout = w; return; }
+      if (w>wmax) { vmax  = v; wmax = w; }
+    });
+    K d = vcom[u];
+    K c = vcom[vmax];
+    if (wmax==0 || ctot[d]>vtot[u]) return;
+    V vcout = wmax;
+    V e     = deltaModularity(vcout, vdout, vtot[u], ctot[c], ctot[d], M, R);
+    if (e>0) { louvainChangeCommunity(vcom, ctot, x, u, c, vtot); fp(u); el += e; }
+  });
+  return el;
+}
+template <class G, class K, class V, class FA>
+inline V louvainMoveFirst(vector<K>& vcom, vector<V>& ctot, const G& x, const vector<V>& vtot, V M, V R, FA fa) {
+  auto fp = [](auto u) {};
+  return louvainMoveFirst(vcom, ctot, vcs, vcout, x, vtot, M, R, E, L, fa, fp);
+}
+template <class G, class K, class V>
+inline V louvainMoveFirst(vector<K>& vcom, vector<V>& ctot, const G& x, const vector<V>& vtot, V M, V R) {
+  auto fa = [](auto u) { return true; };
+  return louvainMoveFirst(vcom, ctot, vcs, vcout, x, vtot, M, R, E, L, fa);
+}
+
+
+/**
  * Louvain algorithm's local moving phase.
  * @param vcom community each vertex belongs to (initial, updated)
  * @param ctot total edge weight of each community (precalculated, updated)
@@ -221,13 +267,14 @@ void louvainChangeCommunity(vector<K>& vcom, vector<V>& ctot, const G& x, K u, K
  * @param fp process vertices whose communities have changed
  * @returns iterations performed
  */
-template <class G, class K, class V, class FA, class FP>
+template <bool FIR=false, class G, class K, class V, class FA, class FP>
 int louvainMove(vector<K>& vcom, vector<V>& ctot, vector<K>& vcs, vector<V>& vcout, const G& x, const vector<V>& vtot, V M, V R, V E, int L, FA fa, FP fp) {
   K S = x.span();
-  int l = 0; V Q = V();
+  int l = 0;
   for (; l<L;) {
     V el = V();
-    x.forEachVertexKey([&](auto u) {
+    if (FIR && l==0) el = louvainMoveFirst(vcom, ctot, x, vtot, M, R, fa, fp);
+    else x.forEachVertexKey([&](auto u) {
       if (!fa(u)) return;
       louvainClearScan(vcs, vcout);
       louvainScanCommunities(vcs, vcout, x, u, vcom);
@@ -239,15 +286,15 @@ int louvainMove(vector<K>& vcom, vector<V>& ctot, vector<K>& vcs, vector<V>& vco
   }
   return l;
 }
-template <class G, class K, class V, class FA>
+template <bool FIR=false, class G, class K, class V, class FA>
 inline int louvainMove(vector<K>& vcom, vector<V>& ctot, vector<K>& vcs, vector<V>& vcout, const G& x, const vector<V>& vtot, V M, V R, V E, int L, FA fa) {
   auto fp = [](auto u) {};
-  return louvainMove(vcom, ctot, vcs, vcout, x, vtot, M, R, E, L, fa, fp);
+  return louvainMove<FIR>(vcom, ctot, vcs, vcout, x, vtot, M, R, E, L, fa, fp);
 }
-template <class G, class K, class V>
+template <bool FIR=false, class G, class K, class V>
 inline int louvainMove(vector<K>& vcom, vector<V>& ctot, vector<K>& vcs, vector<V>& vcout, const G& x, const vector<V>& vtot, V M, V R, V E, int L) {
   auto fa = [](auto u) { return true; };
-  return louvainMove(vcom, ctot, vcs, vcout, x, vtot, M, R, E, L, fa);
+  return louvainMove<FIR>(vcom, ctot, vcs, vcout, x, vtot, M, R, E, L, fa);
 }
 
 
