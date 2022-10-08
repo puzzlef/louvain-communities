@@ -1,7 +1,5 @@
-Comparison of ordered vs unordered vertex processing in [Louvain algorithm] for
-[community detection].
-
-`TODO`
+Effect of using a simple weight-based community choice for first iteration for
+local-moving phase of [Louvain algorithm] for [community detection].
 
 [Louvain] is an algorithm for **detecting communities in graphs**. *Community*
 *detection* helps us understand the *natural divisions in a network* in an
@@ -40,45 +38,40 @@ modularity is below a certain threshold. As a result from each pass, we have a
 generally consider the *top-level hierarchy* as the *final result* of community
 detection process.
 
-There exist two possible approaches of vertex processing with the Louvain
-algorithm: *ordered* and *unordered*. With the **ordered approach** (original
-paper's approach), the *local-moving phase* is **performed sequentially** upon
-each vertex such that the moving of a *previous vertex* in the graph *affects*
-the decision of the *current vertex* being processed. On the other hand, with
-the **unordered approach** the moving of a *previous vertex* in the graph *does*
-*not affect* the decision of movement for the *current vertex*. This *unordered*
-*approach* (aka *relaxed approach*) is made possible by maintaining the
-*previous* and the *current community membership status* of each vertex (along
-with associated community information), and is the approach **followed by**
-**parallel Louvain implementation** on the CPU as well as the GPU. We are
-interested in looking at *performance/modularity penalty* (if any) associated
-with the *unordered approach*.
+The **first iteration** of **local-moving phase** can be simplified to **not**
+**require** the use of an **accumulator hashtable**. This is because in the *first*
+*iteration*, each vertex is its *own community* (*no* accumulation is needed).
+However, this **must** be performed in an **unordered fashion**, i.e., the
+community choosing of one vertex would *not* affect the community choosing of
+*another vertex* (as it normally does with local-moving phase, as we are using
+*ordered* Louvain algorithm). We anticipate that this may help reducing the time
+taken for convergence, while still taking almost the same time for convergence.
+This *can be useful on the GPU* when using *limited capacity accumulator*
+*hashtable* as it can *reduce the number of communities present* and thus help
+limit the impact of the inaccuracies of a limited capacity hashtable. Note that
+we apply this simiplification **only** for the **first iteration of the first**
+**local-moving phase** of the algorithm.
 
-In this experiment we compare the ordered and unordered vertex processing
-approaches for the Louvain algorithm, both in terms of quality (modularity) of
-communities obtained, and performance. We choose the Louvain *parameters* as
-`resolution = 1.0`, `tolerance = 0.0` (for local-moving phase), `passTolerance = 0.0`
-(when passes stop). In addition we limit the maximum number of iterations in
-a single local-moving phase with `maxIterations = 500`, and limit the maximum
-number of passes with `maxPasses = 500`. We run the Louvain algorithm until
-convergence (or until the maximum limits are exceeded), and measure the **time**
-**taken** for the *computation* (performed 5 times for averaging), the
-**modularity score**, the **total number of iterations** (in the *local-moving*
-*phase*), and the number of **passes**. This is repeated for *seventeen*
-different graphs.
+In this experiment we compare the standard and simplified first move approaches
+for the Louvain algorithm, both in terms of quality (modularity) of communities
+obtained, and performance. We choose the Louvain *parameters* as
+`resolution = 1.0`, `tolerance = 1e-2` (for local-moving phase) with *tolerance*
+decreasing after every pass by a factor of `toleranceDeclineFactor = 10`, and a
+`passTolerance = 0.0` (when passes stop). In addition we limit the maximum
+number of iterations in a single local-moving phase with `maxIterations = 500`,
+and limit the maximum number of passes with `maxPasses = 500`. We run the
+Louvain algorithm until convergence (or until the maximum limits are exceeded),
+and measure the **time taken** for the *computation* (performed 5 times for
+averaging), the **modularity score**, the **total number of iterations** (in the
+*local-moving phase*), and the number of **passes**. We also track the *time*,
+*iterations*, and *modularity* obtained from the first local-moving phase on the
+CPU and the GPU. This is repeated for *seventeen* different graphs.
 
-From the results, we observe that **both** the *ordered* and the *unordered*
-vertex processing approaches of the Louvain algorithm are able to provide
-communities **of equivalent quality** in terms of **modularity**, with the
-*ordered approach* providing *slightly higher quality communities* for certain
-graphs. However, the **unordered approach** is **quite a bit slower** than the
-*ordered approach* in terms of the **total time taken**, as well as the **total**
-**number of iterations** of the *local-moving phase* (which is the *most*
-*expensive part* of the algorithm). We therefore conclude that **partially**
-**ordered approaches** for vertex processing are **likely to provide good**
-**performance improvements** over fully unordered approaches **for parallel**
-**implementations** of the Louvain algorithm. *Vertex ordering* via *graph*
-*coloring* has been explored by Halappanavar et al.
+From the results, we observe that **using a simple first move** requires in
+general somewhat **more time (and iterations) to converge** than the standard
+approach, but may also return communities of **slightly higher modularity**. We
+therefore conclude that using a **simple first move is not useful on the CPU**,
+but it may be useful on the GPU for the reasons mentioned above.
 
 All outputs are saved in a [gist] and a small part of the output is listed here.
 Some [charts] are also included below, generated from [sheets]. The input data
@@ -102,23 +95,23 @@ $ ...
 # order: 281903 size: 2312497 [directed] {}
 # order: 281903 size: 3985272 [directed] {} (symmetricize)
 # [-0.000497 modularity] noop
-# [00612.142 ms; 0025 iters.; 009 passes; 0.923383 modularity] louvainSeqOrdered
-# [01021.339 ms; 0053 iters.; 013 passes; 0.924812 modularity] louvainSeqUnordered
+# [00420.826 ms; 0025 iters.; 008 passes; 0.923382580 modularity] louvainSeq
+# [00479.680 ms; 0027 iters.; 008 passes; 0.927262425 modularity] louvainSeqFirst
 #
 # Loading graph /home/subhajit/data/web-BerkStan.mtx ...
 # order: 685230 size: 7600595 [directed] {}
 # order: 685230 size: 13298940 [directed] {} (symmetricize)
 # [-0.000316 modularity] noop
-# [01152.747 ms; 0028 iters.; 009 passes; 0.935839 modularity] louvainSeqOrdered
-# [02297.683 ms; 0252 iters.; 010 passes; 0.934896 modularity] louvainSeqUnordered
+# [00687.219 ms; 0028 iters.; 008 passes; 0.935839474 modularity] louvainSeq
+# [00729.971 ms; 0031 iters.; 009 passes; 0.935943425 modularity] louvainSeqFirst
 #
 # ...
 ```
 
-[![](https://i.imgur.com/hyodWWi.png)][sheetp]
-[![](https://i.imgur.com/8Ohz4fC.png)][sheetp]
-[![](https://i.imgur.com/VrQZ0VF.png)][sheetp]
-[![](https://i.imgur.com/1I1vATC.png)][sheetp]
+[![](https://i.imgur.com/XFX1S8h.png)][sheetp]
+[![](https://i.imgur.com/8ouL5ar.png)][sheetp]
+[![](https://i.imgur.com/5fGEYFF.png)][sheetp]
+[![](https://i.imgur.com/n5Fsm7o.png)][sheetp]
 
 <br>
 <br>
@@ -136,16 +129,15 @@ $ ...
 <br>
 <br>
 
-[![](https://i.imgur.com/CSFI99v.jpg)](https://www.youtube.com/watch?v=soFR3Uf6Aoo)<br>
+[![](https://i.imgur.com/RbvQPwO.jpg)](https://www.youtube.com/watch?v=XE_z2X98a_Y)<br>
 [![ORG](https://img.shields.io/badge/org-puzzlef-green?logo=Org)](https://puzzlef.github.io)
-[![DOI](https://zenodo.org/badge/516219283.svg)](https://zenodo.org/badge/latestdoi/516219283)
 
 
 [Prof. Dip Sankar Banerjee]: https://sites.google.com/site/dipsankarban/
 [Prof. Kishore Kothapalli]: https://faculty.iiit.ac.in/~kkishore/
 [SuiteSparse Matrix Collection]: https://sparse.tamu.edu
 [Louvain]: https://en.wikipedia.org/wiki/Louvain_method
-[gist]: https://gist.github.com/wolfram77/20646e8a76711fdac463eabc92a306ff
-[charts]: https://imgur.com/a/w8RUjZX
-[sheets]: https://docs.google.com/spreadsheets/d/1s9d2NGOrQT9_0uixIBKoTSSlERcr2PTVxJlhaWZ0st4/edit?usp=sharing
-[sheetp]: https://docs.google.com/spreadsheets/d/e/2PACX-1vQ9L0XHRdEJpkWvWpWCxPr8M7CajTfSIXS_Q2-NAVpGYR-Rr83QDu3ZON88Y32yVGCF1iwo14RniOsm/pubhtml
+[gist]: https://gist.github.com/wolfram77/b33a74f40d32a9c3fed12cd348853cd0
+[charts]: https://imgur.com/a/2Rzc3dP
+[sheets]: https://docs.google.com/spreadsheets/d/1L3M8tjHPfmo69OinHnNMRuOZIu1aSDHHml2o97-eILo/edit?usp=sharing
+[sheetp]: https://docs.google.com/spreadsheets/d/e/2PACX-1vT7lULjkO_3TTh8tQyxWznBIgip7P63VHAVoneai9bTwRnx0zYcAEu6CMqYJMv0VeVIxSSDKKBSkqQq/pubhtml
